@@ -1,5 +1,5 @@
-# r
-r scripts and projects
+# R
+R scripts and projects
 
 
 | Project Name                                                                               | Notes        
