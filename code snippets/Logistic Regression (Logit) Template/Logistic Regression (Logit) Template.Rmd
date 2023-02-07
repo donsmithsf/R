@@ -1,0 +1,167 @@
+---
+
+title: "Logistic Regression (Logit) Template"
+author: "Don Smith"
+output: github_document
+
+---
+
+# Part 1: Load and summarize
+## Initial loading of data, packages, and functions
+```{r}
+
+# Run this reusable confusion matrix function (https://en.wikipedia.org/wiki/Confusion_matrix)
+my_confusion_matrix <- function(cf_table) {
+  true_positive <- cf_table[4]
+  true_negative <- cf_table[1]
+  false_positive <- cf_table[2]
+  false_negative <- cf_table[3]
+  accuracy <- (true_positive + true_negative) / (true_positive + true_negative + false_positive + false_negative)
+  sensitivity_recall <- true_positive / (true_positive + false_negative) 
+  specificity_selectivity <- true_negative / (true_negative + false_positive)
+  precision <- true_positive / (true_positive + false_positive) 
+  neg_pred_value <- true_negative/(true_negative + false_negative)
+  print(cf_table)
+  my_list <- list(sprintf("%1.0f = True Positive (TP), Hit", true_positive),
+                  sprintf("%1.0f = True Negative (TN), Rejection", true_negative),
+                  sprintf("%1.0f = False Positive (FP), Type 1 Error", false_positive),
+                  sprintf("%1.0f = False Negative (FN), Type 2 Error", false_negative),
+                  sprintf("%1.4f = Accuracy (TP+TN/(TP+TN+FP+FN))", accuracy), 
+                  sprintf("%1.4f = Sensitivity, Recall, Hit Rate, True Positive Rate (How many positives did the model get right? TP/(TP+FN))", sensitivity_recall),
+                  sprintf("%1.4f = Specificity, Selectivity, True Negative Rate (How many negatives did the model get right? TN/(TN+FP))", specificity_selectivity),
+                  sprintf("%1.4f = Precision, Positive Predictive Value (How good are the model's positive predictions? TP/(TP+FP))", precision),
+                  sprintf("%1.4f = Negative Predictive Value (How good are the model's negative predictions? TN/(TN+FN)", neg_pred_value)
+  )
+  return(my_list)
+}
+
+```
+
+## Install and load packages (don't install twice)
+```{r}
+
+# install.packages('tidyverse')
+library(tidyverse)
+
+# Load data
+df <- read_rds("C:\\Users\\Owner\\Documents\\GitHub\\r\\code snippets\\Logistic Regression (Logit) Template\\data\\mod6HE_logit.rds")
+
+# Explore the data and discuss in PowerPoint
+summary(df)
+
+```
+
+
+# Part 2: Run the Logistic Algorithm
+## Prepare the data
+```{r}
+
+# Not for the model (for use later)
+logit1 <- df %>% 
+  ungroup() %>% 
+  select(store, week, high_med_rev, high_med_units, high_med_gpm)
+
+# For use in the model
+logit2 <- df %>% 
+  ungroup() %>% 
+  select(high_med_gp, 
+         size, region, promo_units_per, 
+         altbev_units_per, confect_units_per, salty_units_per,
+         velocityA_units_per, velocityB_units_per, velocityC_units_per, velocityD_units_per, velocityNEW_units_per)
+
+# Check that "positive" is last for the `my_confusion_matrix` to work 
+contrasts(factor(logit2$high_med_gp))
+
+```
+
+## Partition the data into testing and training datasets
+```{r}
+
+# install.packages('caret') (don't install twice)
+library(caret)
+set.seed(77) 
+partition <- caret::createDataPartition(y=logit2$high_med_gp, p=.75, list=FALSE)
+data_train <- logit2[partition, ]
+data_test <- logit2[-partition, ]
+
+```
+
+## Train the multivariate model - these are the instructions part of machine learning
+```{r}
+
+model_train <- glm(high_med_gp ~ ., family=binomial, data=data_train)
+summary(model_train)
+
+```
+
+### Two main takeaways to consider:
+
+1) What do the coefficients mean here, specifically, for the coefficient on “promo_units_per”? Does it help or hurt profitability?
+
+2) What does the p-value mean?
+
+
+## Predict the response variable (Use the instructions to predict the likelihood of high gross profit)
+```{r}
+
+predict_test <- predict(model_train, newdata=data_test, type='response')
+
+```
+
+
+## Form table to look at the accuracy of the model
+```{r}
+
+table2 <- table(predict_test>.5, data_test$high_med_gp) #prediction on left and truth on top
+my_confusion_matrix(table2)
+
+```
+
+### Questions:
+
+1) Which (sensitivity, specificity, precision, negative predictive value) is the highest, and what does that mean?
+
+2) For a given use case, which is most important (sensitivity, specificity, precision, negative predictive value), or something else?
+
+
+# Part 3: Use the predictions above to help the business
+## Put the data back together for future use
+```{r}
+
+# Put the prediction back into the test data
+data_test$prediction <- predict_test
+
+# Create a variable that shows if the prediction was correct 
+# (Must do the classification--in `round(prediction)`--since logistic regression gives us a probability)
+data_test <- data_test %>% mutate(correct_prediction = if_else(round(prediction) == high_med_gp, 'correct', 'WRONG!'))
+
+# Add back the original data
+temp1 <- logit1[-partition, ]
+full_test <- bind_cols(temp1, data_test)
+
+# For viewing
+full_test <- full_test %>% 
+  select(store, week, high_med_gp, prediction, correct_prediction, size, region, promo_units_per, salty_units_per)
+slice_sample(full_test, n=10)
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
