@@ -3,7 +3,7 @@
 
 | File Name                                                                               | Notes        
 | ------------------------------------------------------------------------------------------ |:-------------------------------------:|
-| [Logistic Regression (Logit) Template](https://github.com/djs-djs/sql/blob/main/Music%20Sales%20Project.sql)|                                       |
+| [Logistic Regression (Logit) Template](https://github.com/donsmithsf/r/tree/main/code%20snippets/Logistic%20Regression%20(Logit)%20Template)|                                       |
 |                                                                                            |      |
 |                                                                                            |      |
 |                                                                                            |      |
