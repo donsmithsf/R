@@ -46,13 +46,7 @@ head(df)
 
 ``` r
 #By quarter
-fe2 <- df %>% group_by(fqtr, digit_diluted) %>% summarize(count_filings = n())
-```
-
-    ## `summarise()` has grouped output by 'fqtr'. You can override using the
-    ## `.groups` argument.
-
-``` r
+fe2 <- df %>% group_by(fqtr, digit_diluted) %>% summarize(count_filings = n(), .groups = 'drop')
 fe2 %>% ggplot(aes(x=digit_diluted, y=count_filings))+ geom_col(aes(fill=digit_diluted)) + facet_wrap(vars(as_factor(fqtr))) + theme_bw()
 ```
 
