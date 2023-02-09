@@ -41,7 +41,7 @@ library(tidyverse)
 ``` r
 #Read in data
 #Note: For the purposes of this assignment, data has been truncated
-titanic_train <- read.csv("C:\\Users\\Owner\\Documents\\GitHub\\r\\class assignments\\Data Analytics in R\\Assignment 9\\data\\titanic_data.csv")
+titanic_train <- read.csv("C:\\Users\\Owner\\Documents\\GitHub\\r\\class assignments\\Data Analytics in R\\Assignment 09\\data\\titanic_data.csv")
 head(titanic_train)
 ```
 
