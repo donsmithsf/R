@@ -1,9 +1,5 @@
 # Class Assignments
 
-Data analytics grad school assignments
-
-# Data Analytics in R
-
 | File Name                                                                           | Notes        
 | ----------------------------------------------------------------------------------- |:-----------------------------------:|
 | [Data Analytics in R](https://github.com/donsmithsf/r/tree/main/class%20assignments/Introduction%20to%20Statistical%20Modeling)|                                     |
