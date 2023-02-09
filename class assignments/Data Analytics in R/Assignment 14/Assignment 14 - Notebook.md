@@ -60,13 +60,7 @@ fe2 %>% ggplot(aes(x=digit_diluted, y=count_filings))+ geom_col(aes(fill=digit_d
 
 ``` r
 #EPS Digit Frequency Bar Chart by Quarter of the Year for 1998
-fe3 <- df  %>% filter(fyearq == 1998) %>% group_by(fqtr, digit_diluted, fyearq) %>% summarize(count_filings = n())
-```
-
-    ## `summarise()` has grouped output by 'fqtr', 'digit_diluted'. You can override
-    ## using the `.groups` argument.
-
-``` r
+fe3 <- df  %>% filter(fyearq == 1998) %>% group_by(fqtr, digit_diluted, fyearq) %>% summarize(count_filings = n(), .groups = 'drop')
 fe3 %>% ggplot(aes(x=digit_diluted, y=count_filings))+ geom_col(aes(fill=digit_diluted)) + facet_wrap(vars(as_factor(fqtr))) + theme_bw()
 ```
 
@@ -74,13 +68,7 @@ fe3 %>% ggplot(aes(x=digit_diluted, y=count_filings))+ geom_col(aes(fill=digit_d
 
 ``` r
 #EPS Digit Frequency Bar Chart by Quarter of the Year for 2019
-fe4 <- df  %>% filter(fyearq == 2019) %>% group_by(fqtr, digit_diluted, fyearq) %>% summarize(count_filings = n())
-```
-
-    ## `summarise()` has grouped output by 'fqtr', 'digit_diluted'. You can override
-    ## using the `.groups` argument.
-
-``` r
+fe4 <- df  %>% filter(fyearq == 2019) %>% group_by(fqtr, digit_diluted, fyearq) %>% summarize(count_filings = n(), .groups = 'drop')
 fe4 %>% ggplot(aes(x=digit_diluted, y=count_filings))+ geom_col(aes(fill=digit_diluted)) + facet_wrap(vars(as_factor(fqtr))) + theme_bw()
 ```
 
@@ -90,7 +78,7 @@ fe4 %>% ggplot(aes(x=digit_diluted, y=count_filings))+ geom_col(aes(fill=digit_d
 
 ``` r
 # 3a. 10 Worst Offenders
-de <- df %>% mutate(is_4 = if_else(digit_diluted == 4, 1, 0), is_5 = if_else(digit_diluted == 5, 1, 0))  %>% group_by(tic, conm) %>% summarize( count_4s = sum(is_4), count_5s = sum(is_5), percent_4s = count_4s/length(is_4), percent_5s = count_5s/length(is_5), count_filings =n()) %>% filter(count_filings > 56, percent_4s < 0.0118, percent_5s > .11)
+de <- df %>% mutate(is_4 = if_else(digit_diluted == 4, 1, 0), is_5 = if_else(digit_diluted == 5, 1, 0))  %>% group_by(tic, conm) %>% summarize(count_4s = sum(is_4), count_5s = sum(is_5), percent_4s = count_4s/length(is_4), percent_5s = count_5s/length(is_5), count_filings =n()) %>% filter(count_filings > 56, percent_4s < 0.0118, percent_5s > .11)
 ```
 
     ## `summarise()` has grouped output by 'tic'. You can override using the `.groups`
