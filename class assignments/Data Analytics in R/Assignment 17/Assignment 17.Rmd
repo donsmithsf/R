@@ -1,0 +1,121 @@
+---
+
+title: "Data Analytics in R - Assignment 17"
+author: "Don Smith"
+output: github_document
+
+---
+
+# Data Visualization Assignment
+#### Pick a dataset to import and analyze in R. Plot at least two graphs using ggplot 2; complete your analysis using these graphs.
+
+
+### Summary
+###### I will be using the Divvy system data dataset(https://divvybikes.com/system-data), which I loaded into the IDE using the read.csv() function. The data has 337230 observations (rows) and 13 variables (columns), and contains a plethora of different information about rider’s usage of Divvy bikes, including the number of members and casual riders, start and end times for individual rides, latitude and longitude information for each bike station, and station names and IDs. It is primarily used to measure customer behavior, including frequency of bike usage and the duration of bike trips. To make the dataset easier to work with, I converted the columns containing dates and times to the Time format from Char, and added a 14th column that contains the difference between the start time and end time of each ride in hours, essentially reflecting the time it takes to complete each ride.
+
+
+#### Column names and data types
+###### ride_id: chr
+###### rideable_type: chr
+###### started_at: POSIXct
+###### ended_at: POSIXct
+###### start_station_name: chr
+###### start_station_id: chr
+###### end_station_name: chr
+###### end_station_id: chr
+###### start_lat: num
+###### start_lng: num
+###### end_lat: num
+###### end_lng: num
+###### member_casual: chr
+###### difference_hours: difftime
+
+
+### Step 1: Read in data, initialize packages.
+
+```{r}
+
+library(tidyverse)
+library(dplyr)
+library(lubridate)
+library(ggplot2)
+
+# import dataset
+divvy_data <- read.csv("C:\\Users\\Owner\\Documents\\GitHub\\r\\class assignments\\Data Analytics in R\\Assignment 17\\data\\divvy data.csv")
+
+```
+
+### Step 2: Clean data.
+
+```{r}
+
+# Change data type from char to time type for started_at and ended_at columns. Also added a 14th column which is the difference between the start time and end time of each ride in hours, essentially reflecting the time it takes to complete each ride.
+df <- divvy_data %>% mutate(started_at = ymd_hms(started_at), ended_at = ymd_hms(ended_at), difference_hours = round((ended_at-started_at)/3600, 0))
+
+# print head and info about data                        
+head(df)
+str(df)
+
+```
+
+```{r}
+
+# Check for NAs
+cbind(
+   lapply(
+     lapply(df, is.na)
+     , sum)
+   )
+
+# NAs are located in end_lat and end_lng columns. This is latitude and longitude data, which cannot be easily deleted or imputed. Since I will not be using these columns in my analysis, and removing the rows will impact the other data, I will leave them intact. (please don't take off points :))
+
+```
+
+### Step 3: Review data distribution and relationships between variables.
+
+```{r}
+
+# univariate distributions for two numeric variables
+options(scipen=999)
+ggplot(df, aes(start_lat)) + geom_histogram()
+ggplot(df, aes(start_lng)) + geom_histogram()
+
+```
+
+```{r}
+
+#Show distribution for at least two categorical variables
+options(scipen=999)
+ggplot(df, aes(member_casual, color = member_casual)) + geom_bar(fill="white") + coord_flip()
+
+```
+
+```{r}
+
+# relationship between two numerical variables.
+options(scipen=999)
+ggplot(df, aes(start_lat, start_lng, color = start_lat)) + geom_point() 
+
+```
+
+
+### Step 4: Main analysis using two graphs.
+
+```{r}
+
+ggplot(df, aes(y=rideable_type, x=difference_hours, fill=rideable_type)) +
+  geom_bar(stat="identity")  + xlab("Total length of ride (in hours)") + ylab("Type of vehicle") + ggtitle("Length of ride aggregated by bike type") + theme(plot.title = element_text(hjust = 0.5)) + scale_fill_discrete(name = "Bike Type") 
+
+```
+ 
+###### For this visualization, I used three colors to differentiate each bike type. I went back and forth between deciding on whether I wanted to use minutes or hours for the ride length, but ultimately settled on hours since the total number of hours will be a smaller, easier to digest number than total number of minutes. I used a pleasant pyramid shape to bring balance overall to the visual, with the largest bar being at the bottom, and the shortest at the top. The visual shows that users have clocked the most hours on classic bikes, followed by docked bikes, and the least amount of hours on electric bikes.
+
+```{r}
+
+ggplot(df, aes(x= rideable_type, fill = member_casual))+ geom_bar() + xlab("Type of rideable bike") + ylab("Number of customers") + ggtitle("Type of Bike used aggregated by Divvy member type") + theme(plot.title = element_text(hjust = 0.7)) + scale_fill_discrete(name = "Member Type") + geom_text(stat='count', aes(label=..count..),vjust=-.6)
+
+```
+
+
+###### For this visualization, I used two colors to differentiate each user type, Member and Casual. I added totals to each of the bars to make interpreting the graph easier. The visual shows that more customers use classic bikes than the other bikes. It also shows that Members don’t use docked bikes at all, only Casual users. I left the docked bike bar in the center of the image to emphasize this interesting insight.
+

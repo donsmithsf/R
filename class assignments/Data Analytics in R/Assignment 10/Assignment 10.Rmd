@@ -1,0 +1,65 @@
+---
+
+title: "Data Analytics in R - Assignment 10"
+author: "Don Smith"
+output: github_document
+
+---
+
+### Question 1: Read in the cars dataset, which is included in base R. Include any packages you need to do your analysis.
+
+```{r}
+
+data(cars)
+
+```
+
+### Question 2: Review the first 6 rows of the dataset.
+
+```{r}
+
+head(cars)
+
+```
+### Question 3: Use the str() function to review the data.
+
+```{r}
+
+str(cars)
+
+```
+
+### Question 4: Plot the data distribution using ggplot2 and geom_point().
+
+```{r}
+
+# Libraries
+library(ggplot2)
+library(hrbrthemes)
+
+# Line graph
+ggplot(cars, aes(x=speed, y=dist)) +
+    geom_point() + ggtitle("Speed of cars in 1920 and the distances taken to stop")+labs(y="Speed (mph)", x = "Stopping distance (ft)") + theme(plot.title = element_text(hjust = 0.5)) 
+
+```
+
+
+### Question 5: Plot a bar graph using the data.
+
+```{r}
+
+# Bar graph
+ggplot(cars, aes(x=speed, y=dist)) + geom_bar(stat="identity", fill="steelblue") + ggtitle("Speed of cars in 1920 and the distances taken to stop")+labs(y="Speed (mph)", x = "Stopping distance (ft)") + theme(plot.title = element_text(hjust = 0.5)) +   ylim(0, 125) 
+
+
+
+```
+
+### Question 6: Plot a pie graph using the data.
+
+```{r}
+
+# Pie graph
+ggplot(cars, aes(x="", y=dist, fill=speed)) + geom_bar(width = 1, stat = "identity", color = "white") + coord_polar("y", start=0) + ggtitle("Speed of cars in 1920 and the distances taken to stop")+ labs(y="Speed (mph)", x = "Stopping distance (ft)") + theme(plot.title = element_text(hjust = 0.5))
+
+```

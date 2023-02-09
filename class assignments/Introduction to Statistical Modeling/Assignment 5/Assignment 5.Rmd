@@ -1,0 +1,321 @@
+---
+
+title: "Introduction to Statistical Modeling - Assignment 5"
+author: "Don Smith"
+output: github_document
+
+---
+
+## Question 11.1 
+
+##### **Using the crime data set uscrime.txt from Questions 8.2, 9.1, and 10.1, build a regression model using:** 
+##### **1. Stepwise regression** 
+##### **2. Lasso** 
+##### **3. Elastic net** 
+
+##### **For Parts 2 and 3, remember to scale the data first – otherwise, the regression coefficients will be on different scales and the constraint won’t have the desired effect.**
+
+##### **For Parts 2 and 3, use the glmnet function in R.** 
+
+##### **Notes on R:** 
+##### **• For the elastic net model, what we called λ in the videos, glmnet calls “alpha”; you can get a range of results by varying alpha from 1 (lasso) to 0 (ridge regression) [and, of course, other values of alpha in between].**
+##### **• In a function call like glmnet(x,y,family=”mgaussian”,alpha=1) the predictors x need to be in R’s matrix format, rather than data frame format. You can convert a data frame to a matrix using as.matrix – for example, x <- as.matrix(data[,1:n-1])** 
+##### **• Rather than specifying a value of T, glmnet returns models for a variety of values of T.**
+
+
+
+```{r eval=TRUE}
+
+# loading all packages needed for analysis
+
+library(kernlab)
+library(kknn)
+library(dplyr)
+library(readr)
+library(rmarkdown)
+library(tinytex)
+library(knitr)
+library(NbClust)
+library(outliers)
+library(nortest)
+library(greybox)
+library(Mcomp)
+library(DAAG)
+library(caret)
+library(randomForest)
+library(tree)
+library(pROC)
+library(glmnet)
+packageurl <- "https://cran.r-project.org/src/contrib/Archive/sme/sme_1.0.2.tar.gz"
+install.packages(packageurl, repos=NULL, type="source")
+packageurl2 <- "https://cran.r-project.org/bin/windows/contrib/4.2/gmp_0.6-10.zip"
+install.packages(packageurl2, repos=NULL, type="source")
+library(FrF2)
+
+
+# description: http://www.statsci.org/data/general/uscrime.html
+
+# import data from URL
+data_crime <- read.table("http://www.statsci.org/data/general/uscrime.txt", stringsAsFactors = FALSE, header = TRUE)
+
+# print head
+print(data_crime)
+
+```
+```{r eval=TRUE}
+
+# Setting seed
+set.seed(123)
+
+# 1. Stepwise regression
+
+# Will scale the data. Note that I am not scaling column 2 since it is binary, 
+# and I am not scaling column 16 since it is the response column
+step_data = cbind(as.data.frame(scale(data_crime[,1])),
+ as.data.frame(data_crime[,2]),
+ as.data.frame(scale(data_crime[,c(3,4,5,6,7,8,9,10,11,12,13,14,15)])), as.data.frame(data_crime[,16]))
+
+# Update column names
+colnames(step_data) = colnames(data_crime)
+
+stepwise_model_lm = lm(Crime~., data = data_crime)
+
+# AIC model
+model_step_aic = step(stepwise_model_lm, direction = 'backward', trace = FALSE)
+summary(model_step_aic)
+
+stepwise_model_lm2 = lm(formula = Crime ~ M + Ed + Po1 + U2 + Ineq + Prob, data = data_crime)
+summary(stepwise_model_lm2)
+
+# BIC model
+model_step_bic = step(stepwise_model_lm, direction = 'backward', k= log(47), trace = FALSE)
+summary(model_step_bic)
+
+coefficients(model_step_bic)
+
+# 5-fold cross-validation
+c_lm2 = cv.lm(data_crime, stepwise_model_lm2, m = 5) 
+c_step_aic = cv.lm(data_crime, model_step_aic, m = 5) 
+
+# Calculate the total sum of the squared difference of each datapoint and its mean element-wise
+SStot = sum((data_crime$Crime - mean(data_crime$Crime))^2)
+SSres_model_lm2 = sum(stepwise_model_lm2$residuals^2)
+SSres_model_step_aic = sum(model_step_aic$residuals^2)
+SSres_c_lm2 = attr(c_lm2,"ms")*nrow(data_crime)
+SSres_c_step_aic = attr(c_step_aic,"ms")*nrow(data_crime)
+
+# Calculate r^2 for each of the above models
+r2 = c()
+r2[1] = 1 - SSres_model_lm2 / SStot
+r2[2] = 1 - SSres_model_step_aic / SStot
+r2[3] = 1 - SSres_c_lm2 / SStot 
+r2[4] = 1 - SSres_c_step_aic / SStot 
+
+print(r2)
+
+
+```
+
+```{r eval=TRUE}
+
+# Setting seed
+set.seed(123)
+
+# 2. Lasso
+
+# Will scale the data. Note that I am not scaling column 2 since it is binary, 
+# and I am not scaling column 16 since it is the response column
+lasso_data = cbind(as.data.frame(scale(data_crime[,1])), 
+  as.data.frame(data_crime[,2]),
+  as.data.frame(scale(data_crime[,c(3,4,5,6,7,8,9,10,11,12,13,14,15)])),
+  as.data.frame(data_crime[,16]))
+
+# Update column names
+colnames(lasso_data) = colnames(data_crime)
+
+# Create lasso model
+model_lasso=cv.glmnet(x=as.matrix(lasso_data[,-16]),
+ y=as.matrix(lasso_data$Crime),alpha=1,
+ nfolds = 5,
+ type.measure="mse",
+ family="gaussian")
+
+print(model_lasso$lambda)
+print(model_lasso$cvm)
+
+plot(model_lasso$lambda, model_lasso$cvm, main='Cross-validated MSE vs lamba')
+abline(v = model_lasso$lambda.min, col = 'red', lty = 2)
+
+# Determine the value of lamba with the smallest cvm
+x = model_lasso$cvm
+model_lasso$lambda[which(x == min(x))]
+
+model_lasso$lambda.min
+
+## Create a plot
+plot(model_lasso$lambda, model_lasso$nzero, main = 'Number of predictor variables vs. lambda')
+abline (v = model_lasso$lambda.min, col = 'red', lty =2)
+
+coefficients(model_lasso, s=model_lasso$lambda.min)
+
+model_lasso_lm = lm(Crime ~M+So+Ed+Po1+M.F+Pop+NW+U1+U2+Wealth+Ineq+Prob, data = lasso_data)
+summary(model_lasso_lm)
+
+# Remove factors where p is greater than .05
+model_lasso_lm2 = lm(Crime ~M+ Ed+ Po1+ U2+ Ineq+Prob, data = lasso_data)
+summary(model_lasso_lm2)
+
+# 5-fold cross-validation
+c_lasso_lm = cv.lm(lasso_data,model_lasso_lm, m=5) 
+
+# Create r^2 function
+r2_function <- function(r2, n, p) {
+
+ return (r2 - (1 - r2) * p / (n - p - 1))
+}
+
+c_lasso_lm2 = cv.lm(data_crime,model_lasso_lm2, m=5) 
+
+# Calculate the total sum of the squared difference of each datapoint and its mean element-wise
+SStot_s = sum((lasso_data$Crime - mean(lasso_data$Crime))^2)
+SSres_model_lasso_lm = sum(model_lasso_lm$residuals^2)
+SSres_model_lasso_lm2 = sum(model_lasso_lm2$residuals^2)
+SSres_c_lasso_lm = attr(c_lasso_lm,"ms")*nrow(lasso_data)
+SSres_c_lasso_lm2 = attr(c_lasso_lm2,"ms")*nrow(lasso_data)
+
+# Calculate r^2 for each of the above models
+r2 = c()
+r2[1] = 1 - SSres_model_lasso_lm/SStot_s
+r2[2] = 1 - SSres_model_lasso_lm2/SStot_s
+r2[3] = 1 - SSres_c_lasso_lm/SStot_s 
+r2[4] = 1 - SSres_c_lasso_lm2/SStot_s 
+r2
+
+ar2=c()
+ar2[1] = r2_function(r2[1], 47, 12)
+ar2[2] = r2_function(r2[2], 47, 6)
+ar2[3] = r2_function(r2[3], 47, 12)
+ar2[4] = r2_function(r2[4], 47, 6)
+ar2
+
+
+```
+
+```{r eval=TRUE}
+
+# Setting seed
+set.seed(123)
+
+# 3. Elastic Net
+
+# Will scale the data. Note that I am not scaling column 2 since it is binary, 
+# and I am not scaling column 16 since it is the response column
+elastic_data = cbind(as.data.frame(scale(data_crime[,1])),
+ as.data.frame(data_crime[,2]),
+ as.data.frame(scale(data_crime[,c(3,4,5,6,7,8,9,10,11,12,13,14,15)])), 
+ as.data.frame(data_crime[,16]))
+
+# Update column names
+colnames(elastic_data) = colnames(data_crime)
+
+# Create iterative loop for elastic model
+r2=c()
+for (i in 0:100) {
+ model_elastic = cv.glmnet(x=as.matrix(elastic_data[,-16]),
+    y = as.matrix(elastic_data$Crime),
+    alpha=i/100,
+    nfolds = 5,
+    type.measure="mse",
+    family="gaussian")
+ 
+ m = which(model_elastic$glmnet.fit$lambda == model_elastic$lambda.min)
+ r2 = cbind(r2, model_elastic$glmnet.fit$dev.ratio[m])
+}
+r2
+
+# Determine best value to Alpha
+alpha = (which.max(r2)-1)/100
+alpha
+
+# Obtain model with alpha = .5
+model_elastic = cv.glmnet(x = as.matrix(elastic_data[,-16]),
+ y=as.matrix(elastic_data$Crime),
+ alpha=0.05,
+ nfolds = 5,
+ type.measure="mse",
+ family="gaussian")
+
+model_elastic_lm = lm(Crime ~M+So+Ed+Po1+Po2+LF+M.F+NW+U1+U2+Wealth+Ineq+Prob+Time, data = elastic_data)
+summary(model_elastic_lm)
+
+model_elastic_lm2 = lm(Crime ~M+Ed+U2+Ineq+Prob, data = elastic_data)
+summary(model_elastic_lm2)
+
+# 5-fold cross-validation
+c_elastic_lm = cv.lm(elastic_data, model_elastic_lm, m=5) 
+c_elastic_lm2 = cv.lm(data_crime, model_elastic_lm2, m=5) 
+
+# Calculate the total sum of the squared difference of each datapoint and its mean element-wise
+SStot_s = sum((elastic_data$Crime - mean(elastic_data$Crime))^2)
+SSres_model_elastic_lm = sum(model_elastic_lm$residuals^2)
+SSres_model_elastic_lm2 = sum(model_elastic_lm2$residuals^2)
+SSres_c_elastic_lm = attr(c_elastic_lm,"ms")*nrow(elastic_data)
+SSres_c_elastic_lm2 = attr(c_elastic_lm2,"ms")*nrow(elastic_data)
+
+# Calculate r^2 for each of the above models
+r2 = c()
+r2[1] = 1 - SSres_model_elastic_lm/SStot_s 
+
+r2[2] = 1 - SSres_model_elastic_lm2/SStot_s
+r2[3] = 1 - SSres_c_elastic_lm/SStot_s 
+r2[4] = 1 - SSres_c_elastic_lm2/SStot_s 
+r2
+ 
+ar2 = c()
+ar2[1] = r2_function(r2[1], 47, 14)
+ar2[2] = r2_function(r2[2], 47, 5)
+ar2[3] = r2_function(r2[3], 47, 14)
+ar2[4] = r2_function(r2[4], 47, 5)
+ar2
+
+```
+
+
+## Question 12.1 
+
+##### **Describe a situation or problem from your job, everyday life, current events, etc., for which a design of experiments approach would be appropriate.**
+
+
+> ##### In order to improve a Fitbit device's accuracy, we could run a research experiment where new or further-refined algorithms for interpreting data from a device's sensor are tested on a small subsection of our user base. We could then use our results to identify what worked and what didn't, and use this information for hardware and software improvement.
+
+## Question 12.2 
+
+##### **To determine the value of 10 different yes/no features to the market value of a house (large yard, solar roof, etc.), a real estate agent plans to survey 50 potential buyers, showing a fictitious house with different combinations of features. To reduce the survey size, the agent wants to show just 16 fictitious houses. Use R’s FrF2 function (in the FrF2 package) to find a fractional factorial design for this experiment: what set of features should each of the 16 fictitious houses have? Note: the output of FrF2 is “1” (include) or “-1” (don’t include) for each feature.**
+
+```{r eval=TRUE}
+
+houses <- FrF2(16, 10)
+print(houses)
+
+```
+
+
+## Question 13.1 
+
+##### **For each of the following distributions, give an example of data that you would expect to follow this distribution (besides the examples already discussed in class).**
+##### **a. Binomial** 
+##### **b. Geometric** 
+##### **c. Poisson** 
+##### **d. Exponential**
+##### **e. Weibull**
+
+
+> ##### Binomial: After a job interview, the number of people who were offered a job versus the number of people who were not offered a job.
+
+> ##### Geometric: The number of run-throughs it would take to achieve the perfect score on an arcade game.
+
+> ##### Poisson: The number of people who file for unemployment per week in the United States.
+
+> ##### Exponential: The time between the unemployment filings discussed above.
+
+> ##### Weibull: Going back to the perfect arcade-game score outlined above, the number of times one plays through the game, the higher the likelihood of a perfect score.

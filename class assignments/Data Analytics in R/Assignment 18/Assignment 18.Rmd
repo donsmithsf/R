@@ -1,0 +1,141 @@
+---
+
+title: "Data Analytics in R - Assignment 18"
+author: "Don Smith"
+output: github_document
+
+---
+
+# Part 1
+
+### 1. Create a code chunk to complete the following tasks:
+
+    Load the following packages: tidyverse, magrittr, lubridate, and corrplot. (You may need to install those packages if you have not already done so.)
+    Read in the hmdaInterestRate.rds file.
+    Report the structure of the dataframe. (No need to comment on the structure.)
+    
+```{r}
+
+library(magrittr)
+library(tidyverse)
+library(lubridate)
+library(corrplot)
+library(tidyverse)
+library(jtools)
+library(ggstance)
+library(huxtable)
+library(corrplot)
+
+```
+
+### 2. Read in data. 
+
+```{r}
+
+df<- readRDS('C:\\Users\\Owner\\Documents\\GitHub\\r\\class assignments\\Data Analytics in R\\Assignment 18\\data\\hmdaInterestRate.rds')
+
+str(df)
+
+```
+
+
+# Part 2
+
+### Data preparation:
+
+    Replace the values in the following columns with the same value divided by 1,000: loan_amount, property_value, and income. (This will make it easier to see the impact on the interest rate.)
+    Create a new column, ltp, that is equal to the values in the loan_amount column divided by the values in the property_value column.
+    Filter the data to keep observations for which income is less than 300 (i.e., $300,000).
+    Report a summary of all columns. (No need to comment on the summary of the columns.)
+    
+```{r}
+
+df1<-df%>% mutate(loan_amount= loan_amount/1000, property_value= property_value/1000, income= income/1000, ltp= loan_amount/property_value ) %>% filter(income<300)
+
+summary(df1$income)
+
+```
+
+
+# Part 3
+
+### Create a correlation plot of the following columns: interest_rate, ltp, income, applicant_age, property_value, and loan_amount.
+
+    Below the plot, identify what variable has the strongest negative correlation with interest_rate. Comment on what might explain why that correlation is negative.
+
+```{r}
+
+ctrd<- cor(df1%>% select(where(is.numeric))) 
+ctrd
+corrplot(ctrd, method = 'color' , order = 'hclust', addCoef.col = 'black',number.cex = .6)
+
+```
+
+###### By looking at the plot, the variable that has the strongest negative correlation with interest rate is loan amount. This value (-0.33) represents a moderate negative correlation.  This makes sense because higher loan amounts are typically taken by wealthier individuals who are low-risk for the lender, so the lender gives a lower interest rate.  It's worth noting that interest rate and "ltp" also had a moderate negative correlation (-0.32)
+
+
+# Part 4
+
+### Regress interest rate on ltp. Interpret the coefficient estimate on ltp.
+
+```{r}
+
+Model1<- lm(interest_rate~ltp, data=df1) 
+summary(Model1)
+
+```
+
+
+```{r}
+
+ggplot(df1, aes(x = ltp, y = interest_rate)) +
+  geom_point() +
+  expand_limits(x = c(0,1)) +
+  stat_smooth(method = 'lm', fullrange = T)
+
+```
+
+###### As ltp increases by one unit, the interest rate decreases by 1.05.
+
+
+# Part 5
+
+### Regress interest rate on ltp and loan_amount. Comment on the change in the adjusted R-squared, as well as the change in the coefficient on ltp.
+
+```{r}
+
+Model2<- lm(interest_rate ~ltp +loan_amount, data=df1)
+summary(Model2)
+export_summs(Model1, Model2)
+
+```
+
+
+```{r}
+
+plot_summs(Model1, Model2)
+
+```
+
+###### The change in coefficient is -1.05 for model 1 and -.74 for model 2 this means that model 1 has a stronger negative correlation than model 2.The difference between the two models in adjusted r squared is .1 for model 1 and .1522 for model 2. Model 2 can now explain more variation in interest rate than it could before. Model 1 can only explain 10% of the variation in interest rate.
+
+
+# Part 6
+
+### Regress interest rate on ltp, loan_amount, and aus_1. Interpret the new coefficients.
+```{r}
+
+Model3<- lm(interest_rate~ltp +loan_amount +aus_1, data=df1)
+summary(Model3)
+export_summs(Model1, Model2, Model3)
+
+```
+
+
+```{r}
+
+plot_summs(Model1, Model2, Model3)
+
+```
+
+###### As we add model 3 to the regression, the r^2 value increased from .1 to .15 to .27. This tells us that model 3 now accounts for 27% of the variation in interest rate. As we add more significant predictive variables, we expect the r^2 value to increase.

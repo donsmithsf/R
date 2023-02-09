@@ -1,0 +1,148 @@
+---
+
+title: "Data Analytics in R - Assignment 13"
+author: "Don Smith"
+output: github_document
+
+---
+
+### Question 1: Read in the ities.csv and max_temp.csv as dataframe objects df and df_weather_weekly, respectively.
+
+```{r}
+# Reading in the ities.csv and max_temp.csv data file
+
+df <- read.csv("C:\\Users\\Owner\\Documents\\GitHub\\r\\class assignments\\Data Analytics in R\\Assignment 13\\data\\ities.csv")
+
+df_weather_weekly <- read.csv("C:\\Users\\Owner\\Documents\\GitHub\\r\\class assignments\\Data Analytics in R\\Assignment 13\\data\\max_temp.csv")
+
+```
+
+
+### Question 2: Display the number of rows and columns in df and df_weather_weekly, respectively, using an appropriate R function. 
+
+```{r}
+
+head(df) # Prints the the first 6 rows of all columns in the dataset   
+head(df_weather_weekly) # Prints the the first 6 rows of all columns in the dataset  
+
+# Prints out the number of rows (observations) and columns (variables)
+paste0('The number of rows in df is ', nrow(df))
+paste0('The number of columns in df is ', ncol(df))
+
+paste0('The number of rows in df_weather_weekly is ', nrow(df_weather_weekly))
+paste0('The number of columns in df_weather_weekly is ', ncol(df_weather_weekly))
+
+```
+
+
+### Question 3: Display the structures of the dataframes, df and df_weather_weekly. Below the output, comment on the appropriateness of the datatypes for the columns.
+
+```{r}
+
+str(df)     # Prints structure of dataset
+str(df_weather_weekly)     # Prints structure of dataset
+
+```
+
+##### For df, the majority of columns are chars, with only 3 columns being either numerics (2) or integers (1). The date column interestingly consists of chars and not a date/time data type. It makes sense most of the columns are chars as many consist of either names of people or items, or various tracking numbers consisting of numbers and letters--entries which have a mix of chars and numerics logically must default to chars, whether this mix is located in separate entries in a data frame/vector/list or in a single entry.
+
+##### For df_weather_weekly, the majority of the columns are numerics since they contain the daily temp data. The week column contains integers which essentially mirror the row index, and should be filtered out to emilinate redundancy. As with df, the date column consists of chars and should be converted to a date/time format.
+
+
+### Question 4: Display summaries of the columns in the dataframes, df and df_weather_weekly. 
+
+```{r}
+
+summary(df)     # Prints a summary of all columns in the dataset
+summary(df_weather_weekly)     # Prints a summary of all columns in the dataset
+
+```
+
+##### We can see that both the Price and TotalDue columns have 12 NA's. These will be dealt with below.
+
+### Question 5: Display the missing values, if any, in df. You can choose to remove or input the missing values and defend that choice in 1-2 sentences for each column with missing values.
+
+```{r}
+
+# Display sum of missing values in all columns
+colSums(is.na(df))
+
+```
+
+##### There are 12 observations missing from the Price and TotalDue columns. Since this is only 0.002% (12/438151) of total obervations, I believe it is safe to delete these 12 rows and will do so.
+
+```{r}
+
+# Load necessary packages 
+library(magrittr)
+library(lubridate)
+library(dplyr)
+
+# Removes NAs from date set using the filter() funtion 
+dfnew <- df %>% filter(!is.na(Price & TotalDue))
+
+# Again display sum of missing values in all columns to confirm NAs have been removed
+colSums(is.na(dfnew))
+
+```
+
+##### Using the filter() function I removed the NAs in the Price and TotalDue columns. 
+
+### Question 6: Create a new dataset df_daily by aggregating the dataframe df at the daily level. The dataframe df_daily must have the columns Quantity and TotalDue from df summarized at the daily level. In one to two sentences, defend the choice of the summary measure (sum, mean, or other) used to aggregate the values  in  each column.
+
+
+```{r}
+
+# Aggregate data at the daily level to sum up Quantity and TotalDue columns
+df_daily <- dfnew %>% mutate(
+  Time = mdy(Date))%>% group_by(Time) %>%
+  summarise(Quantity = sum(Quantity)
+                , TotalDue = sum(TotalDue)) %>%
+  ungroup() 
+
+head(df_daily)
+
+```
+
+##### Using the %>%, I added new column "Time" to the data set which contains the dates included in the "Date" column converted to the date datatype. I grouped by time, so that when my chosen aggregate function (sum()) was used, it would sum Quantity and TotalDue by date. I chose the sum() function as my summary metric because I felt the total quantity of items sold (Quanity) and the total of the product of price per unit and quantity sold (TotalDue) would be the most useful information to conduct a comparative profitability analysis of both columns against the date. I also experimented with the mean() function but found that the distribution was the same, with the only change being the y-axis range.
+
+
+### Question 7: Convert the dataframe df_weather_weekly from wide to long such that names of the seven columns (Monday:Sunday) are in a new column day and the values from those seven columns (Monday:Sunday) are in a new column max_temp. The name of the long dataframe will be df_weather_daily. 
+
+```{r}
+
+# Load necessary packages 
+library(tidyr)
+
+# Convert the dataset from wide to long; also create new column "Time" with converted date values from the "WeekStarting" column
+df_weather_daily <- df_weather_weekly %>% mutate(
+  Time = mdy(WeekStarting))  %>% pivot_longer(cols = Monday:Sunday, names_to = 'dayofweek', values_to = "max_temp") %>% select("Time", "dayofweek", "max_temp") 
+
+head(df_weather_daily)
+
+```
+
+
+### Question 8: Merge/join the dataframes df_daily and df_weather_daily into one dataframe df_final such that only the rows that are in both df_daily and df_weather_daily are in df_final. 
+
+```{r}
+
+# Used inner_join() to merge dataset and include only the values that both datasets have in common
+
+df_final <- df_weather_daily %>% inner_join(df_daily, by="Time")
+df_final
+
+```
+
+
+### Question 9: Display a pairplot for three columns from df_final: Quantity, TotalDue, and Max_Temp. Below the output, interpret the scatter plots that are in the pairpot.
+
+```{r}
+
+# Pair plot
+plot(df_final[,c("Quantity", "TotalDue", "max_temp")], pch = 19, lower.panel=NULL)
+
+```
+
+##### For Quantity, when compared with max_temp, we can see that more items are purchased when temperatures are cooler than when they are hotter. For TotalDue, when compared with max_temp, similarly we can see that more items are sold when it is cooler vs. when it's hotter. From the scatter plot, we can gather that business is better in the cooler parts of the year. Using this information, the store could develop various strategies to drive foot traffic and increase sales during warmer months, including having a special summer sale or offering free ice cream for the first 100 people who enter the store.
+

@@ -1,0 +1,429 @@
+---
+
+title: "Data Analytics in R - Assignment 5"
+author: "Don Smith"
+output: github_document
+
+---
+
+# Part 1: Questions 1 and 2: Insurance Rates
+
+```{r}
+
+#Load necessary packages
+library(dslabs)
+library(magrittr)
+library(dplyr)
+data(death_prob)
+head(death_prob)
+
+```
+
+
+
+## Question 1a
+
+#### The death_prob data frame from the dslabs package contains information about the estimated probability of death within 1 year (prob) for different ages and sexes.
+
+#### Use death_prob to determine the death probability of a 50 year old female, p.
+
+```{r}
+
+p <- death_prob %>% filter(age==50, sex=="Female") %>% pull(prob)
+p
+
+```
+
+
+## Question 1b
+
+#### The loss in the event of the policy holder's death is -$150,000 and the gain if the policy holder remains alive is the premium $1,150.
+
+#### What is the expected value of the company's net profit on one policy for a 50 year old female?
+
+```{r}
+
+a <- -150000
+b <- 1150
+
+a*p +b*(1-p)
+
+```
+
+
+## Question 1c
+
+#### Calculate the standard error of the profit on one policy for a 50 year old female.
+
+```{r}
+
+abs(b - a) * sqrt(p*(1 - p))
+
+```
+
+
+## Question 1d
+
+#### What is the expected value of the company's profit over all 1,000 policies for 50 year old females?
+
+```{r}
+
+n <- 1000
+ev <- n * (a*p + b*(1-p))
+ev
+
+```
+
+
+## Question 1e
+
+#### What is the standard error of the sum of the expected value over all 1,000 policies for 50 year old females?
+
+```{r}
+
+se <- sqrt(n) * abs(b - a) * sqrt(p*(1 - p))
+se
+
+```
+
+
+## Question 1f
+
+#### Use the Central Limit Theorem to calculate the probability that the insurance company loses money on this set of 1,000 policies.
+
+```{r}
+
+pnorm(0, ev, se)
+
+```
+
+
+#### 50 year old males have a different probability of death than 50 year old females. You will calculate a profitable premium for 50 year old males in the following four-part question.
+
+## Question 2a
+
+#### Use death_prob to determine the probability of death within one year for a 50 year old male.
+
+```{r}
+
+p <- death_prob %>% filter(age==50, sex=="Male") %>% pull(prob)
+p
+
+```
+
+
+
+## Question 2b
+
+#### Suppose the company wants its expected profits from 1,000 50 year old males with $150,000 life insurance policies to be $700,000. Use the formula for expected value of the sum of draws with the following values and solve for the premium  b :
+
+#### E[S]=μS=700000 
+#### n=1000 
+#### p=death probability of age 50 male 
+#### a=150000 
+#### b=premium 
+
+#### What premium should be charged?
+
+#### --> b = ((E[S]/n) - ap)/(1-p)
+
+```{r}
+
+b <- ((700000/1000) - -150000*p)/(1-p)
+b
+
+```
+
+
+## Question 2c
+
+#### Using the new 50 year old male premium rate, calculate the standard error of the sum of 1,000 premiums.
+
+```{r}
+
+se <- sqrt(n) * abs(b - a) * sqrt(p*(1 - p))
+se
+
+```
+
+## Question 2d
+
+#### What is the probability of losing money on a series of 1,000 policies to 50 year old males?
+#Use the Central Limit Theorem.
+
+```{r}
+
+pnorm(0, 1000*(-150000*p + b*(1-p)), se)
+
+```
+
+
+# Part 2: Questions 3 and 4: Insurance Rates
+
+#### Life insurance rates are calculated using mortality statistics from the recent past. They are priced such that companies are almost assured to profit as long as the probability of death remains similar. If an event occurs that changes the probability of death in a given age group, the company risks significant losses.
+
+#### In this 6-part question, you will look at a scenario in which a lethal pandemic disease increases the probability of death within 1 year for a 50 year old to .015. Unable to predict the outbreak, the company has sold 1,000 $150,000 life insurance policies for $1,150.
+
+## Question 3a
+
+#### What is the expected value of the company's profits over 1,000 policies?
+
+```{r}
+
+a <- -150000
+b <- 1150
+p <- 0.015
+n <- 1000
+
+ev <- n * (a*p + b*(1-p))
+ev
+
+```
+
+
+## Question 3b
+
+#### What is the standard error of the expected value of the company's profits over 1,000 policies?
+
+```{r}
+
+se <- sqrt(n) * abs(b - a) * sqrt(p*(1 - p))
+se
+
+```
+
+
+## Question 3c
+
+#### What is the probability of the company losing money?
+
+```{r}
+
+pnorm(0, ev, se)
+
+```
+
+
+## Question 3d
+
+#### Suppose the company can afford to sustain one-time losses of $1 million, but larger losses will force it to go out of business.
+
+#### What is the probability of losing more than $1 million?
+
+```{r}
+
+pnorm(-1000000, ev, se)
+
+```
+
+
+## Question 3e
+
+#### Investigate death probabilities p <- seq(.01, .03, .001).
+
+```{r}
+
+p <- seq(.01, .03, .001)
+
+fu <- sapply(p, function(p){
+  # calculate the expected value at given p
+  expected_value <- n * (a*p + b*(1-p))
+  # calculate the standard error at given p
+  standard_error <- sqrt(n) * abs(b - a) * sqrt(p*(1 - p))
+  # calculate likelihood of score of 35 or greater
+  pnorm(0, expected_value, standard_error)
+})
+
+```
+
+#### What is the lowest death probability for which the chance of losing money exceeds 90%?
+
+```{r}
+
+
+min(p[which(fu > 0.9)])
+
+```
+
+
+
+## Question 3f
+
+#### Investigate death probabilities p <- seq(.01, .03, .0025).
+
+```{r}
+
+p <- seq(.01, .03, .0025)
+
+fu <- sapply(p, function(p){
+  # calculate the expected value at given p
+  expected_value <- n * (a*p + b*(1-p))
+  # calculate the standard error at given p
+  standard_error <- sqrt(n) * abs(b - a) * sqrt(p*(1 - p))
+  # calculate likelihood of score of 35 or greater
+  pnorm(-1000000, expected_value, standard_error)
+})
+
+```
+
+
+#### What is the lowest death probability for which the chance of losing over $1 million exceeds 90%?
+
+```{r}
+
+min(p[which(fu > 0.9)])
+
+```
+
+#### Question 4, which has two parts, continues the scenario from Question 3.
+
+## Question 4a
+
+#### Define a sampling model for simulating the total profit over 1,000 loans with probability of claim p_loss = .015, loss of -$150,000 on a claim, and profit of $1,150 when there is no claim. Set the seed to 25, then run the model once.
+
+#### What is the reported profit (or loss) in millions (that is, divided by 106)?
+
+```{r}
+
+set.seed(25)
+n <- 1000
+p_loss <- 0.015
+
+X <- sample(c(0,1), n, replace=TRUE, prob=c((1-p_loss),p_loss))
+loss <- -150000*sum(X==1)/10^6 # in millions
+profit <- 1150*sum(X==0)/10^6
+loss+profit
+
+```
+
+## Question 4b
+
+#### Set the seed to 27, then run a Monte Carlo simulation of your sampling model with 10,000 replicates to simulate the range of profits/losses over 1,000 loans.
+
+#### What is the observed probability of losing $1 million or more?
+
+```{r}
+
+set.seed(27)
+S <- replicate(10000, {
+  X <- sample(c(0, 1), 1000, replace=TRUE, prob=c((1-0.015), 0.015))
+  loss <- -150000*sum(X==1)/10^6 # in millions
+  profit <- 1150*sum(X==0)/10^6
+  loss+profit
+})
+sum(S<=-1)/10000
+
+```
+
+
+# Part 3: Questions 5 and 6: Insurance Rates
+
+#### Question 5, which has 4 parts, continues the pandemic scenario from Questions 3 and 4.
+
+#### Suppose that there is a massive demand for life insurance due to the pandemic, and the company wants to find a premium cost for which the probability of losing money is under 5%, assuming the death rate stays stable at p=0.015.
+
+## Question 5a
+
+#### Calculate the premium required for a 5% chance of losing money given  n=1000  loans, probability of death  p=0.015 , and loss per claim  l=−150000 . Save this premium as x for use in further questions.
+
+```{r}
+
+p <- 0.015
+n <- 1000
+l <- -150000
+z <- qnorm(.05)
+x <- -l*( n*p - z*sqrt(n*p*(1-p)))/ ( n*(1-p) + z*sqrt(n*p*(1-p)))
+x
+
+```
+
+## Question 5b
+
+#### What is the expected profit per policy at this rate?
+
+```{r}
+
+l*p + x*(1-p)
+
+```
+
+## Question 5c
+
+#### What is the expected profit over 1,000 policies?
+
+```{r}
+
+n*(l*p + x*(1-p))
+
+```
+
+## Question 5d
+
+#### Run a Monte Carlo simulation with B=10000to determine the probability of losing money on 1,000 policies given the new premium x, loss on a claim of $150,000, and probability of claim  p=.015 . Set the seed to 28 before running your simulation.
+
+#### What is the probability of losing money here?
+
+#### The company cannot predict whether the pandemic death rate will stay stable. Set the seed to 29, then write a Monte Carlo simulation that for each of  B=10000  iterations:
+  
+#### randomly changes  p  by adding a value between -0.01 and 0.01 with sample(seq(-0.01, 0.01, length = 100), 1)
+#### uses the new random  p  to generate a sample of  n=1,000  policies with premium x and loss per claim  l=−150000 
+#### returns the profit over  n  policies (sum of random variable)
+
+#### The outcome should be a vector of  B  total profits. Use the results of the Monte Carlo simulation to answer the following three questions.
+
+
+```{r}
+
+set.seed(28)
+S <- replicate(10000, {
+  X <- sample(c(0,1), n, replace = TRUE, prob=c((1-p), p))
+  loss <- l*sum(X==1)/10^6 # in millions
+  profit <- x*sum(X==0)/10^6
+  loss+profit
+})
+sum(S<0)/10000
+
+```
+
+## Question 6a
+
+#### What is the expected value over 1,000 policies?
+
+```{r}
+
+set.seed(29)
+n <- 1000
+B <- 10000
+l <- -150000
+p <- 0.015
+f <- 3268
+X <- replicate(B, {
+  new_p <- p + sample(seq(-0.01, 0.01, length=100), 1)
+  Y <- sample(c(f, l), n, replace=TRUE, prob=c(1-new_p, new_p))
+  sum(Y)
+})
+
+
+mean(X)
+
+```
+
+## Question 6b
+
+#### What is the probability of losing money?
+
+```{r}
+
+sum(X<0)/B
+
+```
+
+## Question 6c
+
+#### What is the probability of losing more than $1 million?
+
+```{r}
+
+mean(X < -1000000)
+
+```

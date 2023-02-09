@@ -1,0 +1,289 @@
+---
+
+title: "Data Analytics in R - Assignment 4"
+author: "Don Smith"
+output: github_document
+
+---
+
+
+# Esophageal cancer and alcohol/tobacco use
+
+```{r}
+
+#Load the tidyverse package
+library(tidyverse)
+
+```
+
+#### Case-control studies help determine whether certain exposures are associated with outcomes such as developing cancer. The built-in dataset esoph contains data from a case-control study in France comparing people with esophageal cancer (cases, counted in ncases) to people without esophageal cancer (controls, counted in ncontrols) that are carefully matched on a variety of demographic and medical characteristics. The study compares alcohol intake in grams per day (alcgp) and tobacco intake in grams per day (tobgp) across cases and controls grouped by age range (agegp).
+
+#### The dataset is available in base R and can be called with the variable name esoph:
+
+```{r}
+  
+head(esoph)
+
+```
+
+#### Each row contains one group of the experiment. Each group has a different combination of age, alcohol consumption, and tobacco consumption. The number of cancer cases and number of controls (individuals without cancer) are reported for each group.
+
+## Question 1a
+  
+#### How many groups are in the study?
+
+```{r}
+  
+nrow(esoph)
+
+```
+
+
+  
+
+## Question 1b
+
+#### How many cases are there?
+
+```{r}
+
+all_cases <- sum(esoph$ncases)
+print(all_cases)
+
+```
+
+
+  
+## Question 1c
+
+#### How many controls are there?
+
+```{r}
+
+all_controls <- sum(esoph$ncontrols)
+print(all_controls)
+
+```
+
+
+
+## Question 2a
+
+#### What is the probability that a subject in the highest alcohol consumption group is a cancer case?
+
+```{r}
+
+t <- unique(esoph$alcgp)
+print(t)
+
+esoph %>% filter(alcgp == "120+") %>%
+  summarize(sum_cases=sum(ncases), tot=sum(ncontrols) + sum(ncases), probability=sum_cases/tot)
+
+```
+
+
+
+## Question 2b
+
+#### What is the probability that a subject in the lowest alcohol consumption group is a cancer case?
+
+```{r}
+
+esoph %>%
+  filter(alcgp == "0-39g/day") %>%
+  summarize(ncases = sum(ncases), ncontrols = sum(ncontrols)) %>%
+  mutate(p_case = ncases / (ncases + ncontrols)) %>%
+  pull(p_case)
+
+```
+
+
+
+## Question 2c
+
+#### Given that a person is a case, what is the probability that they smoke 10g or more a day?
+
+```{r}
+
+tob_cases <- esoph %>%
+  filter(tobgp != "0-9g/day") %>%
+  pull(ncases) %>%
+  sum()
+
+tob_cases/all_cases
+
+```
+
+
+
+## Question 2d
+
+#### Given that a person is a control, what is the probability that they smoke 10g or more a day?
+
+```{r}
+
+tob_controls <- esoph %>%
+  filter(tobgp != "0-9g/day") %>%
+  pull(ncontrols) %>%
+  sum()
+
+tob_controls/all_controls
+
+```
+
+
+
+## Question 3a
+
+#### For cases, what is the probability of being in the highest alcohol group?
+
+```{r}
+
+high_alc_cases <- esoph %>%
+  filter(alcgp == "120+") %>%
+  pull(ncases) %>%
+  sum()
+
+p_case_high_alc <- high_alc_cases/all_cases
+p_case_high_alc
+
+```
+
+
+
+## Question 3b
+
+#### For cases, what is the probability of being in the highest tobacco group?
+
+```{r}
+
+high_tob_cases <- esoph %>%
+  filter(tobgp == "30+") %>%
+  pull(ncases) %>%
+  sum()
+
+p_case_high_tob <- high_tob_cases/all_cases
+p_case_high_tob
+
+```
+
+
+
+## Question 3c
+
+#### For cases, what is the probability of being in the highest alcohol group and the highest tobacco group?
+
+```{r}
+
+high_alc_tob_cases <- esoph %>%
+  filter(alcgp == "120+" & tobgp == "30+") %>%
+  pull(ncases) %>%
+  sum()
+
+p_case_high_alc_tob <- high_alc_tob_cases/all_cases
+p_case_high_alc_tob
+
+```
+
+
+
+## Question 3d
+
+#### For cases, what is the probability of being in the highest alcohol group or the highest tobacco group?
+
+```{r}
+
+p_case_either_highest <- p_case_high_alc + p_case_high_tob - p_case_high_alc_tob
+p_case_either_highest
+
+```
+
+
+
+## Question 4a
+
+#### For controls, what is the probability of being in the highest alcohol group?
+
+```{r}
+
+high_alc_controls <- esoph %>%
+  filter(alcgp == "120+") %>%
+  pull(ncontrols) %>%
+  sum()
+
+p_control_high_alc <- high_alc_controls/all_controls
+p_control_high_alc
+
+```
+
+
+
+## Question 4b
+
+#### How many times more likely are cases than controls to be in the highest alcohol group?
+
+```{r}
+
+p_case_high_alc/p_control_high_alc
+
+```
+
+
+
+## Question 4c
+
+#### For controls, what is the probability of being in the highest tobacco group?
+
+```{r}
+
+high_tob_controls <- esoph %>%
+  filter(tobgp == "30+") %>%
+  pull(ncontrols) %>%
+  sum()
+
+p_control_high_tob <- high_tob_controls/all_controls
+p_control_high_tob
+
+```
+
+
+
+## Question 4d
+
+#### For controls, what is the probability of being in the highest alcohol group and the highest tobacco group?
+
+```{r}
+
+high_alc_tob_controls <- esoph %>%
+  filter(alcgp == "120+" & tobgp == "30+") %>%
+  pull(ncontrols) %>%
+  sum()
+
+p_control_high_alc_tob <- high_alc_tob_controls/all_controls
+p_control_high_alc_tob
+
+```
+
+
+## Question 4e
+
+#### For controls, what is the probability of being in the highest alcohol group or the highest tobacco group?
+
+```{r}
+
+p_control_either_highest <- p_control_high_alc + p_control_high_tob - p_control_high_alc_tob
+p_control_either_highest
+
+```
+
+
+## Question 4f
+
+#### How many times more likely are cases than controls to be in the highest alcohol group or the highest tobacco group?
+
+```{r}
+
+p_case_either_highest/p_control_either_highest
+
+```
+

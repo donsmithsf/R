@@ -1,0 +1,528 @@
+---
+
+title: "Introduction to Statistical Modeling - Assignment 4"
+author: "Don Smith"
+output: github_document
+
+---
+
+## Question 9.1
+
+##### **Using the same crime data set uscrime.txt as in Question 8.2, apply Principal Component Analysis and then create a regression model using the first few principal components. Specify your new model in terms of the original variables (not the principal components), and compare its quality to that of your solution to Question 8.2. You can use the R function prcomp for PCA. (Note that to first scale the data, you can include scale. = TRUE to scale as part of the PCA function. Don’t forget that, to make a prediction for the new city, you’ll need to unscale the coefficients (i.e., do the scaling calculation in reverse)!)**
+
+
+
+```{r eval=TRUE}
+# loading all packages needed for analysis
+
+library(kernlab)
+library(kknn)
+library(dplyr)
+library(readr)
+library(rmarkdown)
+library(tinytex)
+library(knitr)
+library(NbClust)
+library(outliers)
+library(nortest)
+library(greybox)
+library(Mcomp)
+library(DAAG)
+library(caret)
+library(randomForest)
+library(tree)
+library(pROC)
+
+
+# description: http://www.statsci.org/data/general/uscrime.html
+
+# import data from URL
+data_crime <- read.table("http://www.statsci.org/data/general/uscrime.txt", stringsAsFactors = FALSE, header = TRUE)
+
+# print head
+print(data_crime)
+
+```
+```{r eval=TRUE}
+
+# Using seed to generate reproducible results
+set.seed(4233)
+
+# Principal Component Analysis
+pca_analysis <- prcomp(data_crime[,1:15], center=T, scale.=T)
+summary(pca_analysis)
+
+```
+
+
+```{r eval=TRUE}
+
+# Printing the matrix of eigenvectors
+head(pca_analysis$rotation)
+
+# Printing list of PCAs
+head(pca_analysis$x)
+
+```
+
+> #####  After reviewing the output of the summary function above, we can see that PC columns 1-3 have a significant amount of variation when compared to the other columns. Moving forward, let's review the proportional variance.
+
+```{r eval=TRUE}
+
+# Square the standard deviation 
+std_squar <- pca_analysis$sdev^2
+
+# Then calculate the proportional variance by dividing each eigenvalue by the sum of all eigenvalues
+propor_var <- std_squar/sum(std_squar)
+plot(propor_var, xlab = "Principal Component", ylab = "Proportion of Variance", ylim = c(0,1) , type= "b")
+
+```
+
+
+```{r eval=TRUE}
+
+# To determine which PC variables are the most important, we will use the Kaiser rule, which asserts that any standard deviation listed
+# that is greater than 1 is important. 
+screeplot(pca_analysis, main = "Scree Plot", type = "line")
+abline(h=1, col="red")
+
+
+```
+
+
+> ##### Per the graph and the Kaiser rule, the first 5 PCs are the most important. However, further analysis is still warranted to determine the most accurate set of PCs, which can be done using k-fold cross validation.
+
+```{r eval=TRUE}
+
+# Setting r^2 value and 5-fold cross-validated r^2 values
+r2 <- numeric(15)
+r2cross_val <- numeric(15)
+
+# Using seed to generate reproducible results
+set.seed(4233)
+
+# To determine the number of PCs which wil give us the most accurate model, we will run an iterative loop to calculate r^2 and 5-fold cross-validated r^2 values using all PC values from 1 up to 15.
+for (i in 1:15){
+  pc_list <- pca_analysis$x[,1:i]
+  pcc <- cbind(data_crime[,16],pc_list)
+  
+  # Calculate r^2, and append the values to the appropriate list
+  model <- lm(V1~., data = as.data.frame(pcc))
+  r2[i] <- 1 -sum(model$residuals^2)/sum((data_crime$Crime - mean(data_crime$Crime))^2)
+  
+  # Calculate 5-fold cross-validated r^2 values, and append the values to the appropriate list
+  par(mfrow = c(3,5))
+  c <- cv.lm(as.data.frame(pcc), model, m = 5, plotit = FALSE, printit = FALSE)
+  r2cross_val[i] <- 1 - attr(c,"ms")*nrow(data_crime) / sum((data_crime$Crime - mean(data_crime$Crime))^2)
+}
+
+```
+
+```{r eval=TRUE}
+
+#plot the results
+plot(r2,xlab = "Principal Component",ylab = "R^2 at x Principal Components", ylim = c(0,1), type = "b", col = "blue")
+
+
+```
+
+> ##### We see that there is a diminishing rate of return from 5 onwards, with a marginal increase around 14. From the graph, we can conclude that using either 4 or 15 will net the most accurate model.
+
+```{r eval=TRUE}
+
+# Will store the above data in a data frame for further review.
+review_r2 <- data.frame(r2, r2cross_val, c(1:length(r2)))
+print(review_r2)
+
+```
+
+> ##### To limit the complexity of the model, we will move forward with using k =5.
+
+```{r eval=TRUE}
+# Set k equal to 5.
+k  = 5
+
+# Using the cbind(), we will combine 1 through 5 PCs with our original crime data.
+pc_crime <- cbind(pca_analysis$x[,1:k], data_crime[,16])
+
+# Using seed to generate reproducible results
+set.seed(4233)
+
+# Will create a linear regression model
+lm_model <- lm(V6~., data = as.data.frame(pc_crime))
+summary(lm_model)
+plot(lm_model)
+
+```
+
+```{r eval=TRUE}
+
+# Will first obtain intercepts for our transformation
+beta0 <- lm_model$coefficients[1]
+
+# Will then pull out our model's coefficients in order to construct the Beta vector
+betas <- lm_model$coefficients[2:(k+1)]
+
+```
+
+```{r eval=TRUE}
+
+# Multiply the coefficients by our rotatation matrix to create the Alpha vector
+alpha <- pca_analysis$rotation[,1:k] %*% betas
+
+# We can then obtain the original alpha values by dividing the alpha vector by sigma
+mu <- sapply(data_crime[,1:15],mean)
+sigma <- sapply(data_crime[,1:15],sd)
+origAlpha <- alpha/sigma
+
+# We can then obtain our original beta values by subtracting from the sum of (alpha*mu)/sigma from the intercept
+origBeta0 <- beta0 - sum(alpha*mu /sigma)
+
+```
+
+```{r eval=TRUE}
+
+# We can now create our model in the form of y = ax + b, where a is the scaled alpha value and b is the original intercept
+estimates <- as.matrix(data_crime[,1:15]) %*% origAlpha + origBeta0
+
+# To determine the accuracy of this model, we will now calculate our r^2
+SSE = sum((estimates - data_crime[,16])^2)
+SStot = sum((data_crime[,16] - mean(data_crime[,16]))^2)
+R2 <- 1 - SSE/SStot
+print(R2)
+
+```
+
+```{r eval=TRUE}
+
+# To determine the accuracy of this model, we will now calculate our adjested r^2
+R2_adjust <- R2 - (1-R2)*k/(nrow(data_crime)-k-1)
+R2_adjust
+
+# Using the data provided last week, we can see how our new model predicts the crime rate 
+last_week_city <- data.frame(M= 14.0, So = 0, Ed = 10.0, Po1 = 12.0, Po2 = 15.5,
+                    LF = 0.640, M.F = 94.0, Pop = 150, NW = 1.1, U1 = 0.120, U2 = 3.6, Wealth = 3200, Ineq = 20.1, Prob = 0.040,Time = 39.0)
+
+# Using seed to generate reproducible results
+set.seed(4233)
+
+# Creating a data frame with PCA data and last week's city data 
+pred_df <- data.frame(predict(pca_analysis, last_week_city)) 
+
+# Crime rate prediction
+pred <- predict(lm_model, pred_df)
+
+print(pred)
+
+```
+
+> ##### From the output, it looks like the model constructed last week was slightly more accurate. However, this analysis shows that a PCA model nets nearly the same accuracy as our other model. 
+
+
+## Question 10.1
+
+##### **Using the same crime data set uscrime.txt as in Questions 8.2 and 9.1, find the best model you can using**
+##### **(a) a regression tree model, and**
+##### **(b) a random forest model.**
+##### **In R, you can use the tree package or the rpart package, and the randomForest package. For each model, describe one or two qualitative takeaways you get from analyzing the results (i.e., don’t just stop when you have a good model, but interpret it too).**
+
+```{r eval=TRUE}
+
+# Using seed to generate reproducible results
+set.seed(4233)
+
+# Will first construct a regression tree model using the tree() function
+crimeTreeMod <- tree(Crime ~ ., data = data_crime)
+summary(crimeTreeMod)
+
+```
+
+```{r eval=TRUE}
+
+# Will plot the tree to review model
+crimeTreeMod$frame
+plot(crimeTreeMod)
+text(crimeTreeMod)
+title("USCRIME Training Set's Classification Tree")
+
+```
+
+```{r eval=TRUE}
+
+# Using seed to generate reproducible results
+set.seed(4233)
+
+# To further model's accuracy, will prune the tree
+termnodes <- 5
+prune.crimeTreeMod <- prune.tree(crimeTreeMod, best = termnodes)
+plot(prune.crimeTreeMod)
+text(prune.crimeTreeMod)
+title("Pruned Tree")
+summary(prune.crimeTreeMod)
+
+```
+
+> ##### Pruning the tree increased the residual mean deviance, which indicates that there is overfitting.
+
+```{r eval=TRUE}
+
+# Look at the deviation and do cross validation
+cv.crime <- cv.tree(crimeTreeMod)
+prune.tree(crimeTreeMod)$size
+prune.tree(crimeTreeMod)$dev
+cv.crime$dev
+
+# The plot backs up our overfitting suspicion 
+plot(cv.crime$size, cv.crime$dev, type = "b")
+
+```
+
+```{r eval=TRUE}
+
+# Will use the max number of terminal nodes, as it contains the smallest amount of errors
+termnodes2 <- 7
+prune.crimeTreeMod2 <- prune.tree(crimeTreeMod, best = termnodes2)
+plot(prune.crimeTreeMod2)
+text(prune.crimeTreeMod2)
+title("Pruned Tree")
+
+summary(prune.crimeTreeMod2)
+
+```
+
+```{r eval=TRUE}
+
+# Using seed to generate reproducible results
+set.seed(4233)
+
+# Will determine fit quality
+crimeTreePredict <- predict(prune.crimeTreeMod2, data = uscrime[,1:15])
+RSS <- sum((crimeTreePredict - data_crime[,16])^2)
+TSS <- sum((data_crime[,16] - mean(data_crime[,16]))^2)
+R2 <- 1 - RSS/TSS
+R2
+
+```
+
+```{r eval=TRUE}
+
+# Will next construct a random forest model using the randomForest() function
+
+# Using seed to generate reproducible results
+set.seed(4233)
+
+# Creating baseline randomForest Model
+crime.rf <- randomForest(Crime ~ ., data=data_crime, importance = TRUE, nodesize = 5)
+crime.rf.predict <- predict(crime.rf, data=data_crime[,-16])
+RSS <- sum((crime.rf.predict - data_crime[,16])^2)
+R2 <- 1 - RSS/TSS
+R2
+
+```
+
+```{r eval=TRUE}
+
+# Using seed to generate reproducible results
+set.seed(4233)
+
+# Our r^2 is even worse than our previous tree. Will try a value of 9 for mtry and see how this affects accuracy
+crime.rf2 <- randomForest(Crime ~ ., data=data_crime, importance = TRUE, nodesize = 5, mtry = 9)
+crime.rf.predict2 <- predict(crime.rf2, data=data_crime[,-16])
+RSS <- sum((crime.rf.predict2 - data_crime[,16])^2)
+R2 <- 1 - RSS/TSS
+R2
+
+```
+
+> ##### The accuracy actually decreased. Will moe forward with trying different values of nodesize and mtry to find optimal values.
+
+```{r eval=TRUE}
+
+# Using seed to generate reproducible results
+set.seed(4233)
+
+# Create iterative loop to plug in different values of nodesize and mtry to find most accurate model, i.e., the model with the smallest r^2 value
+result.rf <- data.frame(matrix(nrow=5, ncol=3))
+colnames(result.rf) <- c("NodeSize", "mtry", "R2")
+i = 1
+suppressWarnings(for (nodesize in 2:15) {
+  for (m in 1:20) {
+    model <- randomForest(Crime ~ ., data=data_crime, importance = TRUE, nodesize = nodesize, mtry = m)
+    predict <- predict(model, data=data_crime[,-16])
+    RSS <- sum((predict - data_crime[,16])^2)
+    TSS <- sum((data_crime[,16] - mean(data_crime[,16]))^2)
+    R2 <- 1 - RSS/TSS
+    result.rf[i,1] <- nodesize
+    result.rf[i,2] <- m
+    result.rf[i,3] <- R2
+    i = i + 1
+  }
+})
+head(result.rf)
+
+result.rf[which.max(result.rf[,3]),]
+
+```
+> ##### A nodesize of 2 and an mtry value of 3 gives us the best randomForest model.
+
+```{r eval=TRUE}
+
+# Plugged these values into our model
+crime.rf.final <- randomForest(Crime ~ ., data=data_crime, importance = TRUE, nodesize = 2, mtry = 3)
+
+```
+
+```{r eval=TRUE}
+
+# Review the most important variables
+importance(crime.rf.final)
+
+```
+
+```{r eval=TRUE}
+
+varImpPlot(crime.rf.final)
+
+```
+
+> ##### The random forest model had a 46% accuracy rating to the regression tree model's 72% accuracy rating. I hypothesize that the larger number of variables used in the randomForest random sampling may decrease the accuracy of this model. 
+
+## Question 10.2
+
+##### **Describe a situation or problem from your job, everyday life, current events, etc., for which a logistic regression model would be appropriate. List some (up to 5) predictors that you might use.**
+
+> ##### My employer, Fitbit, offers an optional Premium subscription service that is not required to use our products. The majority of our users are not Premium subscribers. If viewed through the lens of this service, we could parse our customer base into two groups:  Premium users (represented as 1) and non-Premium users (represented as 0). Using this classification, and given the amount of people who are current subscribers, we could construct a logistic regression model to predict what percentage of new users who join Fitbit will eventually sign up for our Premium service.
+
+## Question 10.3 
+
+##### **1. Using the GermanCredit data set germancredit.txt from http://archive.ics.uci.edu/ml/machine-learning-databases/statlog/german / (description at http://archive.ics.uci.edu/ml/datasets/Statlog+%28German+Credit+Data%29 ), use logistic regression to find a good predictive model for whether credit applicants are good credit risks or not. Show your model (factors used and their coefficients), the software output, and the quality of fit. You can use the glm function in R. To get a logistic regression (logit) model on data where the response is either zero or one, use family=binomial(link=”logit”) in your glm function call.**
+
+##### **2. Because the model gives a result between 0 and 1, it requires setting a threshold probability to separate between “good” and “bad” answers. In this data set, they estimate that incorrectly identifying a bad customer as good, is 5 times worse than incorrectly classifying a good customer as bad. Determine a good threshold probability based on your model.**
+**
+
+```{r eval=TRUE}
+
+# Using seed to generate reproducible results
+set.seed(4233)
+
+credit <- read.table("http://archive.ics.uci.edu/ml/machine-learning-databases/statlog/german/german.data", header = FALSE)
+str(credit)
+
+```
+
+
+```{r eval=TRUE}
+
+# Replace 1s and 2s with 0s and 1s
+credit$V21[credit$V21==1] <- 0
+credit$V21[credit$V21==2] <- 1
+
+```
+
+```{r eval=TRUE}
+
+# Split data into train and validation set
+creditTrain <- credit[1:800,] 
+creditTest <- credit[801:1000,]
+
+print(creditTest)
+
+```
+
+```{r eval=TRUE}
+
+# Using seed to generate reproducible results
+set.seed(4233)
+
+creditLogModel <- glm(V21 ~ ., data = creditTrain, family=binomial(link="logit"))
+
+```
+
+```{r eval=TRUE}
+
+# Using summary function to review predictors
+summary(creditLogModel)
+
+# Using seed to generate reproducible results
+set.seed(4233)
+
+#Let's do a baseline prediction.
+creditPredict <- predict(creditLogModel, newdata=creditTest, type="response")
+print(paste(creditTest$V21, base::round(creditPredict)))
+
+```
+
+> #####  The baseline model would appear to correctly classify most of the good borrowers, but still misclassifies many of the bad borrowers. Since the cost of bad borrowers is 5x that of misclassifying good borrowers, we should minimize misclassifying of bad borrowers as much as possible. Will attempt this by only including variables with a significance of p <0.1.
+
+```{r eval=TRUE}
+
+# Manually removing non-significant variables from training data set
+creditTrain$V1A14[creditTrain$V1 == "A14"] <- 1
+creditTrain$V1A14[creditTrain$V1 != "A14"] <- 0
+
+creditTrain$V3A34[creditTrain$V3 == "A34"] <- 1
+creditTrain$V3A34[creditTrain$V3 != "A34"] <- 0
+
+creditTrain$V4A41[creditTrain$V4 == "A41"] <- 1
+creditTrain$V4A41[creditTrain$V4 != "A41"] <- 0
+
+creditTrain$V4A43[creditTrain$V4 == "A43"] <- 1
+creditTrain$V4A43[creditTrain$V4 != "A43"] <- 0
+
+# Using seed to generate reproducible results
+set.seed(4233)
+
+creditLogModel2 <- glm(V21 ~ V1A14+V2+V3A34+V4A41+V4A43, data = creditTrain, family=binomial(link="logit"))
+summary(creditLogModel2)
+
+```
+
+```{r eval=TRUE}
+
+# Processing the test data set in the same way
+creditTest$V1A14[creditTest$V1 == "A14"] <- 1
+creditTest$V1A14[creditTest$V1 != "A14"] <- 0
+
+creditTest$V3A34[creditTest$V3 == "A34"] <- 1
+creditTest$V3A34[creditTest$V3 != "A34"] <- 0
+
+creditTest$V4A41[creditTest$V4 == "A41"] <- 1
+creditTest$V4A41[creditTest$V4 != "A41"] <- 0
+
+creditTest$V4A43[creditTest$V4 == "A43"] <- 1
+creditTest$V4A43[creditTest$V4 != "A43"] <- 0
+
+
+# Will now create confusion matrix of predicted vs. observed values on the test set
+creditPredict2 <- predict(creditLogModel2, newdata=creditTest[,-21], type="response")
+t <- as.matrix(base::table(round(creditPredict2), creditTest$V21))
+names(dimnames(t)) <- c("Predicted", "Observed")
+print(t)
+
+```
+
+```{r eval=TRUE}
+
+# Will now calculate both accuracy and specificity, with the goal of maximizing specificity realtive to the effect of a false positive
+threshold <- 0.7
+t2 <- as.matrix(base::table(round(creditPredict2 > threshold), creditTest$V21))
+names(dimnames(t2)) <- c("Predicted", "Observed")
+print(t2)
+
+```
+
+```{r eval=TRUE}
+
+accuracy <- (t2[1,1]+t2[2,2])/(t2[1,1]+t2[1,2]+t2[2,1]+t2[2,2])
+print(accuracy)
+
+```
+
+```{r eval=TRUE}
+
+specificity <- (t2[1,1])/(t2[1,1]+t2[2,1])
+print(specificity)
+
+```
+
+> ##### With a threshold of 0.7, we arrive at a specificity rate of 98.5%, and an accuracy rate of 68%. As this is over 50%, this is an acceptably accurate model.

@@ -1,0 +1,321 @@
+---
+
+title: "Introduction to Statistical Modeling - Assignment 2"
+author: "Don Smith"
+output: github_document
+
+---
+
+## Question 4.1
+
+##### **Describe a situation or problem from your job, everyday life, current events, etc., for which a clustering model would be appropriate. List some (up to 5) predictors that you might use.**
+
+> ##### I work at Fitbit in the tech-wearables market. After obtaining sales data showing the demographic breakdown (e.g., sex, race, age, location) of our customers along with their purchasing habits, and organizing them by the most popular product for each group (e.g, women over 40 in the midwestern United States purchase the most Charge 3s), we can use this data in conjunction with clustering to inform decisions regarding product inventory optimization at our regional partner stores, such as Target and Walmart, and marketing strategies for those particular groups.
+
+
+## Question 4.2
+
+##### **The iris data set iris.txt contains 150 data points, each with four predictor variables and one categorical response. The predictors are the width and length of the sepal and petal of flowers and the response is the type of flower. The data is available from the R library datasets and can be accessed with iris once the library is loaded. It is also available at the UCI Machine Learning Repository (https://archive.ics.uci.edu/ml/datasets/Iris ). The response values are only given to see how well a specific method performed and should not be used to build the model.**
+##### **Use the R function kmeans to cluster the points as well as possible. Report the best combination of predictors, your suggested value of k, and how well your best clustering predicts flower type.**
+
+```{r eval=TRUE}
+# loading all packages needed for analysis
+
+library(kernlab)
+library(kknn)
+library(dplyr)
+library(readr)
+library(rmarkdown)
+library(tinytex)
+library(knitr)
+library(MASS)
+library(factoextra)
+library(NbClust)
+library(outliers)
+library(nortest)
+library(qcc)
+
+# Loading iris data set 
+
+data_iris <- read.table("C:\\Users\\Owner\\Documents\\Github\\r\\class assignments\\Introduction to Statistical Modeling\\Assignment 2\\data\\data 4.2\\iris.txt", header=T)
+
+# Scaling data
+data_iris_scaled <- data_iris 
+ind <- sapply(data_iris_scaled, is.numeric)
+data_iris_scaled[ind] <- lapply(data_iris_scaled[ind], scale)
+
+
+head(data_iris_scaled)
+
+```
+
+```{r eval=TRUE}
+
+# Creating graphs showing the spread of the data, using the categorial column "Species" as clustering color
+
+ggplot(data_iris_scaled, aes(Petal.Length, Petal.Width, color= Species)) + geom_point()
+ggplot(data_iris_scaled, aes(Sepal.Length, Sepal.Width, color= Species)) + geom_point()
+ggplot(data_iris_scaled, aes(Sepal.Length, Petal.Length, color= Species)) + geom_point()
+ggplot(data_iris_scaled, aes(Sepal.Length, Petal.Width, color= Species)) + geom_point()
+ggplot(data_iris_scaled, aes(Sepal.Width, Petal.Width, color= Species)) + geom_point()
+ggplot(data_iris_scaled, aes(Sepal.Width, Petal.Length, color= Species)) + geom_point()
+
+
+```
+
+> ##### As is made clear from the above graphs, since we have 3 types of flowers, we should have at least 3 clusters. To further investigate, I will run the k-means model to determine if 3 clusters provide the highest level of accuracy.
+
+```{r eval=TRUE}
+
+# Using seed to generate reproducible results
+
+set.seed(1533)
+
+# using the kmeans() function to determine the optimal clustering number
+
+kmeans_model_2 <- kmeans(data_iris_scaled[,1:4], centers = 2, nstart = 30, algorithm = "Hartigan-Wong", trace=FALSE)
+kmeans_model_3 <- kmeans(data_iris_scaled[,1:4], centers = 3, nstart = 30, algorithm = "Hartigan-Wong", trace=FALSE)
+kmeans_model_4 <- kmeans(data_iris_scaled[,1:4], centers = 4, nstart = 30, algorithm = "Hartigan-Wong", trace=FALSE)
+kmeans_model_5 <- kmeans(data_iris_scaled[,1:4], centers = 5, nstart = 30, algorithm = "Hartigan-Wong", trace=FALSE)
+kmeans_model_6 <- kmeans(data_iris_scaled[,1:4], centers = 6, nstart = 30, algorithm = "Hartigan-Wong", trace=FALSE)
+kmeans_model_7 <- kmeans(data_iris_scaled[,1:4], centers = 7, nstart = 30, algorithm = "Hartigan-Wong", trace=FALSE)
+kmeans_model_8 <- kmeans(data_iris_scaled[,1:4], centers = 8, nstart = 30, algorithm = "Hartigan-Wong", trace=FALSE)
+kmeans_model_9 <- kmeans(data_iris_scaled[,1:4], centers = 9, nstart = 30, algorithm = "Hartigan-Wong", trace=FALSE)
+
+model_when_k_equals_2 <- round(((kmeans_model_2$betweenss / kmeans_model_2$totss)*100), digits = 4)
+model_when_k_equals_3 <- round(((kmeans_model_3$betweenss / kmeans_model_3$totss)*100), digits = 4)
+model_when_k_equals_4 <- round(((kmeans_model_4$betweenss / kmeans_model_4$totss)*100), digits = 4)
+model_when_k_equals_5 <- round(((kmeans_model_5$betweenss / kmeans_model_5$totss)*100), digits = 4)
+model_when_k_equals_6 <- round(((kmeans_model_6$betweenss / kmeans_model_6$totss)*100), digits = 4)
+model_when_k_equals_7 <- round(((kmeans_model_7$betweenss / kmeans_model_7$totss)*100), digits = 4)
+model_when_k_equals_8 <- round(((kmeans_model_8$betweenss / kmeans_model_8$totss)*100), digits = 4)
+model_when_k_equals_9 <- round(((kmeans_model_9$betweenss / kmeans_model_9$totss)*100), digits = 4)
+
+accuracy_percentages <- data.frame(model_when_k_equals_2, model_when_k_equals_3, model_when_k_equals_4, model_when_k_equals_5, model_when_k_equals_6, model_when_k_equals_7, model_when_k_equals_8, model_when_k_equals_9)
+print(accuracy_percentages)
+
+```
+
+> ##### Interestingly, the output shows that model accuracy increases in tandem with the number of clusters, represented by the value k. However, there is an ever shrinking marginal benefit from k = 3 onward. Note that there is only a 4 percent difference from 3 to 4 and from 4 to 5, a 2 percent difference between 5 and 6 and 6 and 7, and a 1 percent difference between 7 and 8 onward. It would appear that the best values for k are between 3 and 5, which is in line with my intuition.
+
+> ##### To further investigate, I will use the elbow method, the silhouette method and the gap statistic method to create visualizations of k values to determine accuracy.
+
+```{r eval=TRUE}
+
+# Using seed to generate reproducible results
+set.seed(4233)
+
+# Elbow method
+
+elbow_method <- fviz_nbclust(data_iris_scaled[,1:4], kmeans, method = "wss") +
+  geom_vline(xintercept = 3, linetype = 2) + # add line for better visualisation
+  labs(subtitle = "Elbow method") # add subtitle
+
+
+# Silhouette method
+
+silhouette_method  <- fviz_nbclust(data_iris_scaled[,1:4], FUN = kmeans, method = "silhouette") +
+  labs(subtitle = "Silhouette method")
+
+# Gap statistic
+
+gap_stat_method  <- fviz_nbclust(data_iris_scaled[,1:4], kmeans,
+  nstart = 30,
+  method = "gap_stat",
+  nboot = 500
+) + # reduce it for lower computation time (but less precise results)
+  labs(subtitle = "Gap statistic method")
+
+print(elbow_method)
+print(silhouette_method)
+print(gap_stat_method)
+```
+
+> ##### As we can see from the above graphs, the elbow method recommends 3 clustors, while both the silhouette and gap statistic methods recommend 2. Because the data contains information on three species of flowers, we must have at least 3 categories; consequently, I conclude that the elbow method’s recommendation of 3 clusters is the most sound suggestion.
+
+```{r eval=TRUE}
+
+# cluster predictions
+print(kmeans_model_3$cluster)
+
+```
+
+```{r eval=TRUE}
+
+# comparasion of clusters with acutal Species data points
+
+compa_re <- data.frame(kmeans_model_3$cluster,  data_iris$Species)
+print(compa_re)
+
+```
+
+```{r eval=TRUE}
+
+# Creating graphs showing the spread of the data, using the generated clusters when k = 3 as the graph color
+
+kmeans_model_3$cluster <-as.factor(kmeans_model_3$cluster)
+
+ggplot(data_iris, aes(Petal.Length, Petal.Width, color= kmeans_model_3$cluster)) + geom_point()
+ggplot(data_iris, aes(Sepal.Length, Sepal.Width, color= kmeans_model_3$cluster)) + geom_point()
+ggplot(data_iris, aes(Sepal.Length, Petal.Length, color= kmeans_model_3$cluster)) + geom_point()
+ggplot(data_iris, aes(Sepal.Length, Petal.Width, color= kmeans_model_3$cluster)) + geom_point()
+ggplot(data_iris, aes(Sepal.Width, Petal.Width, color= kmeans_model_3$cluster)) + geom_point()
+ggplot(data_iris, aes(Sepal.Width, Petal.Length, color= kmeans_model_3$cluster)) + geom_point()
+```
+
+> ##### After plotting the data with the generated clustor, we see that the cluster accuracy is in line with the 77% accuracy rate predicted above, with most of the issues being with the 2nd and 3rd clusters.
+
+## Question 5.1
+
+##### **Using crime data from the file uscrime.txt (http://www.statsci.org/data/general/uscrime.txt, description at http://www.statsci.org/data/general/uscrime.html), test to see whether there are any outliers in the last column (number of crimes per 100,000 people). Use the grubbs.test function in the outliers package in R.**
+
+```{r eval=TRUE}
+
+# description: http://www.statsci.org/data/general/uscrime.html
+
+# import data from URL
+data_crime <- read.table("http://www.statsci.org/data/general/uscrime.txt", header = TRUE)
+
+# scaled data
+data_crime <- scale(data_crime, center = TRUE, scale = TRUE)
+
+# print head
+print(data_crime[,16])
+```
+
+```{r eval=TRUE}
+
+# Before I do the Grubbs test, I will check if column 16 is normally distributed using the Shapiro-Wilk and Anderson-Darling normality tests
+
+set.seed(123)
+
+sha_test <- shapiro.test(data_crime[,16])
+
+
+ad_test <- ad.test(data_crime[,16])
+
+
+print(sha_test)
+print(ad_test)
+
+plot(density(data_crime[,16]))
+
+qqnorm(data_crime[,16]);qqline(data_crime[,16], col = 2)
+
+```
+
+> ##### From the plots, it looks like most of the data is evenly distributed, except for some pretty substantial positive outliers. Since the p values for both tests are <= .05, and the plots show that the column has a lightly lopsided distribution, I will reject the NULL hypothesis that this data is normally distributed and try removing the offending data points to see if we get a more even distribution. 
+
+```{r eval=TRUE}
+set.seed(15)
+
+# Will do the Grubbs test "Crime" column to determine highest and lowest outlier
+
+data_crime_outliers <- grubbs.test(data_crime[,16], type = 11, opposite = FALSE, two.sided = FALSE)
+print(data_crime_outliers)
+
+```
+
+> ##### After running through several iterations of code, I have determined that 2.81287441018599, 2.75082085595987 and 1.98807925193052 are the largest positive outliers. Will delete these data point and run tests again.
+
+
+```{r eval=TRUE}
+
+# deleting largest, second largest, and third largest ourliers, 2.81287441018599, 2.75082085595987 and 1.98807925193052 respectively
+
+column_16 <- data_crime[,16]
+
+column_16_cleaned <- column_16[-c(4,10,26)]
+
+
+set.seed(123)
+
+sha_test_cleaned <- shapiro.test(column_16_cleaned)
+
+
+ad_test_cleaned <- ad.test(column_16_cleaned)
+
+
+print(sha_test_cleaned)
+print(ad_test_cleaned)
+
+plot(density(column_16_cleaned))
+
+qqnorm(column_16_cleaned);qqline(column_16_cleaned, col = 2)
+
+data_crime_outliers_cleaned <- grubbs.test(column_16_cleaned, type = 11, opposite = FALSE, two.sided = FALSE)
+print(data_crime_outliers_cleaned )
+
+```
+
+> ##### Deleting these points has brought the data more in line with a normal distribution. The p values for both Shapiro-Wilk and Anderson-Darling normality tests are large enough for us to accept the NULL hypothesis that the data is evenly distributed.
+
+## Question 6.1
+
+##### **Describe a situation or problem from your job, everyday life, current events, etc., for which a Change Detection model would be appropriate. Applying the CUSUM technique, how would you choose the critical value and the threshold?**
+
+> ##### We can use a Change Detection model to monitor the internal temperature of a custom-built gaming computer and turn on a liquid cooling system if it rises above 80 degrees. We do this using a series of sensors installed in the unit to monitor temperature change. To build this model, we would first have to record the real-time internal temperature, x(t). We would next need to calculate the mean of the expected internal temperature if no temperature change occurs, μ. To calibrate the model and limit the amount of false data, we can add a constant value, C. (It is important that C is not too large, as it can slow down the model.) 
+The equation is thus:
+
+> #### s(t) = max{0, S(t-1)+(x(t)-μ)-C}; Is S(t) >= T?
+
+> ##### where x(t) = observed value at time t;  μ = mean of x, if no change; and C = a value acting to pull down the running total, making the method less sensitive to change.
+
+> ##### Using this equation, we would then use x(t) data collected from the sensors to monitor the temperature for any large increases that rise above the critical threshold. If the temperature data consistently reads at or above 80 degrees, this will trigger the liquid cooling system to turn on. 
+
+
+## Question 6.2
+
+##### **1. Using July through October daily-high-temperature data for Atlanta for 1996 through 2015, use a CUSUM approach to identify when unofficial summer ends (i.e., when the weather starts cooling off) each year. You can get the data that you need from the file temps.txt or online, for example at http://www.iweathernet.com/atlanta-weather-records or https://www.wunderground.com/history/airport/KFTY/2015/7/1/CustomHistory.html. You can use R if you’d like, but it’s straightforward enough that an Excel spreadsheet can easily do the job too.**
+
+
+```{r eval=TRUE}
+
+# description: http://www.iweathernet.com/atlanta-weather-records
+
+# import data from URL
+data_temp  <- read.table("C:/Users/Owner/Documents/Data Science Masters - GT/ISYE 6501 - Summer 2020/Week 2/HW 2/week 2 data-summer/data 6.2/temps.txt", header=T)
+
+
+# Scaling data
+data_temp_scaled <- data_temp
+ind <- sapply(data_temp_scaled, is.numeric)
+data_temp_scaled[ind] <- lapply(data_temp_scaled[ind], scale)
+
+# print head
+head(data_temp_scaled)
+
+```
+
+> ##### **--> Link to online spreadsheet containing my analysis: [Assignment 2 - Question 6.1 and 6.2 CUMSUM](https://docs.google.com/spreadsheets/d/1YXcTX0ydm9L299bdZuJiRiHdNrLxyUtJ/edit?usp=sharing&ouid=112237753660920597081&rtpof=true&sd=true)**
+
+> ##### To determine the threshold, μ and C for each year, I took the standard deviation (SD) of the first 45 observations, and set the threshold as 3 SD and my C as 1 SD. As for μ, I set it as the mean of the first 45 observations.
+
+#### "End of summer" dates:
+
+> ##### 1996: Somewhere around 2-Sep and 13-Sep
+> ##### 1997: 26-Sep
+> ##### 1998: Somewhere around 10-Sep and 18-Sep
+> ##### 1999: There was a patch between 12-Jul and 17-Jul when the temperature cooled down short term, but general seasonal cooling did not begin until around 19-Sep
+> ##### 2000: 5-Sep
+> ##### 2001: 1-Sep
+> ##### 2002: Between 12-Jul and 13-Jul, and also between around 29-Aug and 31-Aug there was some short-term cooling, but it wasn’t until 13-Sep that seasonal cooling began in earnest.
+> ##### 2003: 7-Sep
+> ##### 2004: There was a cooling spell between 12-Aug and 15-Aug, but the expected seasonal cooling did not officially begin until 8-Sep.
+> ##### 2005: Cooling did not begin until 7-Oct, a very late start.
+> ##### 2006: There was minor short-term cooling that happened between 6-Jul and 8-Jul, but seasonal cooling did not begin until 6-Sep.
+> ##### 2007: 18-Sep, with some minor increases between 22-Sep and 25-Sep
+> ##### 2008: 13-Aug, an early start, with some minor increases between 18-Aug and 20-Aug
+> ##### 2009: 30-Aug
+> ##### 2010: 26-Sep
+> ##### 2011: 5-Sep
+> ##### 2012: 24-Aug
+> ##### 2013: There was a cooling spell between 14-Aug and 26-Aug, but the expected seasonal cooling did not officially begin until 21-Sep.
+> ##### 2014: 24-Sep
+> ##### 2015: There was a very minor cooling spell between 3-Jul and 6-Jul, but the expected seasonal cooling did not officially begin until 28-Aug.		
+
+##### Note: The following are exceptions to the above: for 1997, I set C to 2 SD to fine tune St; for 1999, 2007 and 2013 I set T to 2 SD to lower the threshold for better accuracy.	
+
+##### **2. Use a CUSUM approach to make a judgment of whether Atlanta’s summer climate has gotten warmer in that time (and if so, when).**
+
+> ##### For this problem, I took the average and max temperatures for the summer, which I define as the time from the beginning of July to the “end of summer” cut off point delineated by the CUMSUM function. After reviewing these temperatures (see spreadsheet), I did not discern a general linear increase in temperatures overtime in Atlanta. However, out of the years with average summer temperatures over 90 degrees (2000, 2010, 2011, 2012, 2015), most of them were more recent. Additionally, out of the years whose hottest days broke 100 degrees (2000, 2007, 2012), one of them was fairly recent. One could therefore hypothesize that Atlanta could be in the initial stages of an upward trend towards higher than average summer temperatures in the future.

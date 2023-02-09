@@ -1,0 +1,83 @@
+---
+
+title: "Data Analytics in R - Assignment 8"
+author: "Don Smith"
+output: github_document
+
+---
+
+### Question 1: Read in the stars dataset, which is included in base R. Include any packages you need to do your analysis.
+
+```{r}
+
+library(tidyverse)
+library(dslabs)
+library(ggplot2)
+
+data(stars)
+
+```
+
+### Question 2: Review the first 6 rows of the dataset.
+
+```{r}
+
+head(stars)
+
+```
+
+### Question 3: What are the mean and standard deviation of the magnitude column?
+
+```{r}
+
+mean(stars$magnitude)
+sd(stars$magnitude)
+
+```
+
+### Question 4: Create a density plot using the magnitude column.
+
+```{r}
+
+ggplot(stars, aes(x=magnitude)) + geom_density(color="darkblue", fill="lightblue")
+
+```
+
+### Question 5: Plot the relationship between magnitude and tempurature.
+
+```{r}
+
+stars %>%  ggplot(aes(temp, magnitude, color = type)) + geom_point()
+
+```
+
+### Question 6: Plot the relationship between magnitude and tempurature, this time with y in the logarithmic scale.
+
+```{r}
+stars %>%  ggplot(aes(temp, magnitude)) + geom_point() + scale_y_reverse() + scale_y_continuous(trans = "log10") + scale_x_reverse()
+
+```
+
+### Question 7: How many stars have a magnitude greater than 10 and temperature greater than 5000?
+
+```{r}
+
+s1 <- stars %>% filter(magnitude >10 & temp >5000)
+s1
+
+count(s1)
+
+```
+
+### Question 8: How many stars have a stars with magnitude less than 0 and temperature less than 3500?
+
+```{r}
+
+s2 <- stars %>% filter(magnitude < 0 & temp < 3500)
+s2
+
+count(s2)
+
+```
+
+

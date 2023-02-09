@@ -1,0 +1,365 @@
+---
+
+title: "Introduction to Statistical Modeling - Assignment 3"
+author: "Don Smith"
+output: github_document
+
+---
+
+## Question 7.1 
+
+##### **Describe a situation or problem from your job, everyday life, current events, etc., for which exponential smoothing would be appropriate. What data would you need? Would you expect the value of α (the first smoothing parameter) to be closer to 0 or 1, and why?**
+
+> ##### I work at Fitbit in customer support. We often use analytics to determine our highest case drivers (i.e., the most common reasons customers reach out to customer support for assistance), which include, for example, wristband malfunction, device not charging, dead on arrival, etc. We could use exponential smoothing to measure our most prevalent case drivers to determine customer trends, emerging hardware issues, allocation of engineering resources, and general financial and strategic forecasting on a day-over-day, month-over-month, or even year-over-year basis.
+
+> ##### For example, if we wanted to get the average contact rate per week for the “device not charging” case driver, for a period of three months, but where one or more of the weeks contained a major holiday, for example, Easter or Mother’s Day, we could use exponential smoothing to obtain it. During holidays sales increase, due doubly to customers purchasing gifts for friends and family and special holiday discounts offered by Fitbit. This consequently increases the number of customers reaching out to support for assistance on successive days after the holiday. While there are use cases where we would want to include this holiday uptick in our analysis, for the purposes of getting an accurate average, we can instead re-classify these increases in customer contacts as random outliers, and use exponential smoothing to round out some of the peaks and valleys caused by these spikes. Building our model:
+
+> ##### s(t) = x(t)
+> ##### -the count of the observed number of contacts for the “device not charging” case driver per day is the real indicator of the baseline
+
+> ##### s(t) = s(t-1)
+> ##### -The count of the “device not charging” case driver for each successive day after a holiday, which we can define as a period of 7 days after the holiday. Since the count on these days will be larger than the count taken for that case driver in previous weeks within our predetermined 3-month period, it is exchanged with the previous weeks baseline, smoothing out the bump, and eliminating the radical increase
+
+> ##### The model looks like this:
+
+> ##### s(t) = α*x(t) + (1-α)*s(t-1)
+
+> ##### Where 0<α<1, with our alpha for this model closer to 0 to account for the “randomness” introduced by the holiday increases.
+
+> ##### After the data has been smoothed out, we can then take the average of the “device not charging” case driver across all days in our 3-month time period to get our contact average, unaffected by increased customer contacts during the holidays.
+
+
+
+## Question 7.2 
+
+##### **Using the 20 years of daily high temperature data for Atlanta (July through October) from Question 6.2 (file temps.txt), build and use an exponential smoothing model to help make a judgment of whether the unofficial end of summer has gotten later over the 20 years. (Part of the point of this assignment is for you to think about how you might use exponential smoothing to answer this question. Feel free to combine it with other models if you’d like to. There’s certainly more than one reasonable approach.)** 
+
+##### **Note: in R, you can use either HoltWinters (simpler to use) or the smooth package’s es function (harder to use, but more general). If you use es, the Holt-Winters model uses model=”AAM” in the function call (the first and second constants are used “A”dditively, and the third (seasonality) is used “M”ultiplicatively; the documentation doesn’t make that clear).**
+
+```{r eval=TRUE}
+# loading all packages needed for analysis
+
+library(kernlab)
+library(kknn)
+library(dplyr)
+library(readr)
+library(rmarkdown)
+library(tinytex)
+library(knitr)
+library(MASS)
+library(factoextra)
+library(NbClust)
+library(outliers)
+library(nortest)
+library(qcc)
+library(smooth)
+library(greybox)
+library(Mcomp)
+library(DAAG)
+library(caret)
+
+
+# description: http://www.iweathernet.com/atlanta-weather-records
+
+# importing temperature data
+data_temp  <- read.table("C:\\Users\\Owner\\Documents\\Github\\r\\class assignments\\Introduction to Statistical Modeling\\Assignment 3\\data\\data 7.2\\temps.txt", header=T)
+
+# print head
+head(data_temp)
+
+```
+
+```{r eval=TRUE}
+
+# Converting the data into vector form as a pre-step before 
+
+data_temp_vec <- as.vector(unlist(data_temp[,2:21]))
+
+head(data_temp_vec)
+plot(data_temp_vec)
+
+```
+
+> ##### Plotting the data shows an uneven distribution that it is difficult to extrapolate meaning from. To better visualize the patterns (if any) in the temperatures over time, we will convert the data to a time series and visualize this linearly. 
+
+```{r eval=TRUE}
+
+# Converting the vectored data into a time series
+
+data_temp_ts <- ts(data_temp_vec, start = 1996, frequency = 123)
+
+summary(data_temp_ts)
+head(data_temp_ts)
+plot(data_temp_ts)
+
+```
+
+> ##### Our data looks a little better now, insofar as the continuous relationship between each temperature fluctuation can be more readily comprehended. Now our data is ready for the Holt-Winters method.
+
+
+```{r eval=TRUE}
+
+# Using seed to generate reproducible results
+
+set.seed(4233)
+
+# Will use the Holt-Winters method to create our time series model
+
+data_temp_holt_wint <- HoltWinters(data_temp_ts, alpha = NULL, beta = NULL, gamma = NULL, seasonal = "multiplicative")
+print(data_temp_holt_wint)
+summary(data_temp_holt_wint)
+plot(data_temp_holt_wint)
+
+```
+
+> ##### The black graph is our original time series, while the red graph is forecasted output from the Holt-Winters model. While not a one-to-one correlation point-wise, the graphs appear to be more similar than dissimilar. Consequently, will do further exploratory analysis by examining the fitted column output from the model. 
+
+```{r eval=TRUE}
+
+# Will pull out and graph the fitted common output from the model for further analysis
+
+head(data_temp_holt_wint$fitted)
+plot(data_temp_holt_wint$fitted)
+
+```
+
+> ##### The flat line in the trend section is of note, pointing to the fact that there is no observable upward or downward relationship with the temperature changes has they progress over time. For further analysis, will pull out the seasonal factors column.
+
+```{r eval=TRUE}
+# Loading the season column into a separate matrix
+
+data_temp_holt_wint_sf <- matrix(data_temp_holt_wint$fitted[,4], nrow=123)
+head(data_temp_holt_wint_sf)
+qqnorm(data_temp_holt_wint_sf)
+
+```
+
+
+```{r eval=TRUE}
+
+# To make reviewing the dataset easier, will re-add column names
+
+colnames(data_temp_holt_wint_sf) <- colnames(data_temp[,3:21])
+rownames(data_temp_holt_wint_sf) <- data_temp[,1]
+
+```
+
+> ##### Let's first start with a broad look at the data. Will calculate the average seasonal temperature factor for ranges 1997-2005 and 2006-2015, and for the total dataset.
+
+```{r eval=TRUE}
+
+# Average seasonal temperature factor between the years 1997-2005
+
+mean_1997_2005 <- (mean(data_temp_holt_wint_sf[,1:9]))
+
+# Average seasonal temperature factor between the years 2006-2015
+
+mean_2006_2015 <- (mean(data_temp_holt_wint_sf[,10:19]))
+
+# One interesting thing we could look at is the average seasonal factor for the dataset as a whole.
+
+total_mean_all_years <- (mean(data_temp_holt_wint_sf))
+
+print(mean_1997_2005)
+print(mean_2006_2015)
+print(total_mean_all_years)
+
+```
+
+> ##### Interestingly, the average seasonal temperature factor was greater between 1997-2005 than it was between 2006-2015 and for the total range outlined in the dataset. Next, we can explore the mean for each individual year in the dataset in ascending order.
+
+```{r eval=TRUE}
+
+# Average seasonal temperature factor for each individual year from 1997-2015
+
+mean_by_year <- vector()
+for (i in 1:ncol(data_temp_holt_wint_sf)){
+  mean_by_year[i] = mean(data_temp_holt_wint_sf[,i])
+}
+
+print(mean_by_year)
+
+```
+
+> ##### Next, we need to determine when during each month the weather begins to cool down for each year.  We can do this by using a seasonal factor value of 1 as our baseline; if a factor falls below 1, we can interpret this as a decreasing seasonal temperature. Will use a CUMSUM iterative loop to achieve this.
+
+```{r eval=TRUE}
+
+# Using seed to generate reproducible results
+
+set.seed(4233)
+
+# Building CUMSUM iterative loop 
+
+cusum_decrease = function(data, mean, T, C){
+  results = list()
+  cusum = 0
+  rowCounter = 1
+  while (rowCounter <= nrow(data)){
+    current = data[rowCounter,]
+    cusum = max(0, cusum + (mean - current - C))
+    # print(cusum)
+    if (cusum >= T) {
+      results = rowCounter
+      break
+    }
+    rowCounter = rowCounter + 1
+    if (rowCounter >= nrow(data)){
+      results = NA
+      break
+    }
+  }
+  return(results)
+}
+
+```
+
+```{r eval=TRUE}
+
+# Using seed to generate reproducible results
+
+set.seed(4233)
+
+# C is defined as .5 times the standard deviation, and T is defined as 3 times the standard deviation.
+
+C_var = sd(data_temp_holt_wint_sf[,1])*0.5
+T_var = sd(data_temp_holt_wint_sf[,1])*3
+
+```
+
+```{r eval=TRUE}
+
+# Using seed to generate reproducible results
+
+set.seed(4233)
+
+# Running the CUMSUM function over each year to calculate the running average
+
+result_vector = vector()
+for (col in 1:ncol(data_temp_holt_wint_sf)){
+  result_vector[col] = cusum_decrease(data = as.matrix(data_temp_holt_wint_sf[,col]), mean = 1,T = T_var, C = C_var)
+}
+
+result_df = data.frame(Year = colnames(data_temp_holt_wint_sf),Day = data_temp[result_vector,1])
+
+print(result_df)
+
+
+
+```
+
+> ##### As we can see, fall comes later and later each year, as it takes longer for seasonal summer temperatures to abate into fall.
+
+## Question 8.1 
+
+##### **Describe a situation or problem from your job, everyday life, current events, etc., for which a linear regression model would be appropriate. List some (up to 5) predictors that you might use.**
+
+> ##### Again, an example from Fitbit: Say we wanted to measure the age ranges of males who have Fitbit Ionics paired to their accounts. We can set up our 2D Cartesian graph, with our x-axis containing the age ranges 16-25, 26-35, 36-45, etc., set against our y-axis, containing the count of the number of Ionics Bluetooth bonded to accounts with the sex set as “male.” The y-axis, in the hundreds scale, would be set to the ranges 1-10, 11-20, 21-30, etc., with 1 =100, 2=200, etc. Once our data has been plotted we can then trace a regression line, using the sum of squared errors, defined as the distance between the actual data points and the regression model's estimaxte, to ensure the line’s fit against our data. From there, we can make informed decisions about which male age groups own and use the Ionic the most.
+
+## Question 8.2 
+
+##### **Using crime data from http://www.statsci.org/data/general/uscrime.txt (file uscrime.txt, description at http://www.statsci.org/data/general/uscrime.html ), use regression (a useful R function is lm or glm) to predict the observed crime rate in a city with the following data:**
+
+##### **M = 14.0** 
+##### **So = 0** 
+##### **Ed = 10.0** 
+##### **Po1 = 12.0** 
+##### **Po2 = 15.5** 
+##### **LF = 0.640** 
+##### **M.F = 94.0** 
+##### **Pop = 150** 
+##### **NW = 1.1** 
+##### **U1 = 0.120** 
+##### **U2 = 3.6** 
+##### **Wealth = 3200** 
+##### **Ineq = 20.1**
+##### **Prob = 0.04** 
+##### **Time = 39.0** 
+
+##### **Show your model (factors used and their coefficients), the software output, and the quality of fit.  Note that because there are only 47 data points and 15 predictors, you’ll probably notice some overfitting. We’ll see ways of dealing with this sort of problem later in the course.**
+
+```{r eval=TRUE}
+
+# description: http://www.statsci.org/data/general/uscrime.html
+
+# import data from URL
+
+data_crime <- read.table("http://www.statsci.org/data/general/uscrime.txt", stringsAsFactors = FALSE, header = TRUE)
+
+# print head
+
+print(data_crime)
+```
+
+```{r eval=TRUE}
+
+# Using seed to generate reproducible results
+
+set.seed(4233)
+
+# Create a lnear regression model using the Crime data set
+
+data_crime_linreg <- lm(Crime~., data = data_crime)
+plot(data_crime_linreg)
+coeffs <- data.frame(data_crime_linreg$coefficients)
+print(coeffs)
+summary(data_crime_linreg)
+
+```
+
+```{r eval=TRUE}
+
+# setting up test point
+
+test_point <- data.frame(M = 14.0, So = 0 , Ed = 10.0, Po1 = 12.0, Po2 = 15.5, LF = 0.640, M.F = 94.0, Pop = 150, NW = 1.1, U1 = 0.120, U2 = 3.6, Wealth = 3200, Ineq = 20.1, Prob = 0.04, Time = 39.0)
+
+print(test_point)
+
+```
+
+
+```{r eval=TRUE}
+
+# Using seed to generate reproducible results
+set.seed(4233)
+
+# Predicted crime rate
+
+pred_model <- predict(data_crime_linreg, test_point)
+print(pred_model)
+
+qqnorm(data_crime$Crime)
+
+```
+
+
+```{r eval=TRUE}
+
+# The range in the crime data
+
+range(data_crime$Crime)
+
+```
+
+> ##### The predicted crime rate is clearly outside of the range in the data set, which means that we need to go back and rework our regression model.
+
+```{r eval=TRUE}
+
+# Using seed to generate reproducible results
+
+set.seed(4233)
+
+# Will perform 10-fold Cross-validation to determine optimal regression fit
+
+data_crime_cv <- cv.lm(data_crime, data_crime_linreg, m=10)
+
+
+```
+```{r eval=TRUE}
+
+final_pred <- mean(data_crime_cv$Predicted) 
+print(final_pred)
+
+```
+
+> ##### The above mean is more in line with the range of the Crime column, showing that this model is a good overall fit for the data.

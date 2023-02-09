@@ -1,0 +1,86 @@
+---
+
+title: "Data Analytics in R - Assignment 15"
+author: "Don Smith"
+output: github_document
+
+---
+
+### Question 1. Accessing data - Download the folder Bike-Sharing-Dataset.zip from this link - https://archive.ics.uci.edu/ml/machine-learning-databases/00275/. 
+
+##### The folder will contain two datafiles hour.csv and day.csv. You will use day.csv for this assignment. The readme file in the folder has a description of the data, which you are encouraged to read so that you can successfully interpret the analytic results. 
+
+##### There are 16 columns in the dataset. You will need to use columns: dteday, temp, and cnt. “cnt” is the outcome variable, or dependent variable.
+
+```{r}
+
+df <- read.csv("C:\\Users\\Owner\\Documents\\GitHub\\r\\class assignments\\Data Analytics in R\\Assignment 15\\data\\day.csv")
+
+head(df)
+
+```
+
+### Question 2. Presenting data – Create an .rmd file in RStudio. Use a code chunk to report a summary of the data.
+
+```{r}
+
+summary(df)
+
+```
+
+### Question 3. Preparing data - Extract the month names from the dteday column using lubridate package and save them in a new column month_name, which has a chr data type.
+
+```{r}
+
+library(tidyverse)
+library(magrittr)
+library(lubridate)
+library(corrplot)
+library(jtools)
+library(ggstance)
+library(huxtable)
+
+df <- df %>% mutate(dteday = as_date(dteday), month_name = as.character(month(dteday, label = TRUE)))
+
+```
+
+### Question 4a. Model 1:
+##### a)	Use a code chunk to run a simple linear regression model where the dependent variable is cnt and the independent variable is month_name and save the model as Model1. 
+##### b)	Use a code chunk to report the summary for Model1. Below the code chunk, use regular text to comment on the R-squared.
+##### c)	From the summary of Model1, identify which month is set as a reference. Use regular text (outside of a code chunk) to report the reference month’s predicted cnt.
+##### d)	With either a code chunk or regular text, use the coefficient estimates from Model1 to report the predicted cnt for the months of January and June.
+
+```{r}
+
+model1 <- lm(cnt~month_name, data=df)
+summary(model1)
+
+```
+
+##### b. The r-squared is .39, meaning that this model reports 39% of month_name is predictable from cnt. 
+##### c. April is missing from the intercept column, therefore it is the reference month and cnt is the y-intercept. The predicted cnt is 4484.9.
+##### d. cnt(Jan) = 4484.9-2308.6*month_name 
+#####    cnt(Jun) = 4484.9+1287.5*month_name
+
+
+### Question 4b. Model 2:
+##### a)	Use a code chunk to run a multiple linear regression model where the dependent variable is cnt and the independent variables are temp and month_name. Save the model as Model2.
+##### b)	Use a code chunk to report the summary for Model2. Below the code chunk use regular text to comment on the R-squared. Please explain why the R-squared is different from the two simple regression models.
+##### c)	Compare the coefficient estimates for the month_name Jan variable in Model1 and Model2. With regular text explain why the coefficient estimates are different.
+##### d)	With either a code chunk or regular text, use the coefficient estimates from Model2 to report the predicted cnt for the month of January when the temperature is .25.
+
+```{r}
+
+model2 <- lm(cnt~temp +month_name, data=df)
+summary(model2)
+export_summs(model1,model2)
+
+
+cnt_jan = 4484.9+ 6235.14*.25+1287.5*-852.31
+cnt_jan
+
+```
+
+##### b. The r-squared for model 2 is .15, which means model 2 reports 15% of the variation in cnt from independant variables temp and month_name. The percentage increased from 10% because of the additional variable which was added to the model, which made it more accurate at predicting variation in the data. These models together (.10 + .15) explain .25 of the variation in the data.
+##### c. Coefficient estimates represent the unique effect of each predictor variable. January for Model2 is -852.31, while Jan for Model1 is -2308.6. This difference shows that these coefficients are correlated with each other.
+##### d. cnt(Jan): -1091305 

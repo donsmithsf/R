@@ -1,0 +1,109 @@
+---
+
+title: "Global Warming"
+author: "Don Smith"
+output: github_document
+
+---
+
+```{r}
+
+library(tidyverse)
+library(dslabs)
+library(ggplot2)
+data(temp_carbon)
+data(greenhouse_gases)
+data(historic_co2)
+
+```
+
+
+```{r}
+
+head(temp_carbon)
+head(greenhouse_gases)
+head(historic_co2)
+
+```
+
+```{r}
+
+temp_carbon %>% max(.$carbon_emissions, na.rm = TRUE)
+greenhouse_gases %>% .$year %>% max()
+historic_co2 %>% .$year %>% max()
+
+temp_carbon %>% mutate()
+
+
+temp_carbon[max(temp_carbon$carbon_emissions, na.rm = TRUE)]
+
+
+```
+
+```{r}
+
+temp_carbon %>% filter(!is.na(carbon_emissions)) %>% pull(year) %>% max()
+
+
+```
+
+
+
+```{r}
+
+p <- temp_carbon %>% filter(!is.na(temp_anomaly)) %>% ggplot(aes(x=year)) +geom_line(aes(y=temp_anomaly), color = "darkred")  + geom_line(aes(y=ocean_anomaly), color = "steelblue")+ geom_line(aes(y=land_anomaly), color = "green")  + geom_hline(aes(yintercept = 0), color = "blue")
+p
+
+
+```
+
+
+```{r}
+
+greenhouse_gases %>%
+  ggplot(aes(year, concentration)) +
+  geom_line() +
+  facet_grid(gas ~ ., scales = "free") +
+  geom_vline(aes(xintercept = 1850)) +
+  ylab("Concentration (ch4/n2o ppb, co2 ppm)") +
+  ggtitle("Atmospheric greenhouse gas concentration by year, 0-2000")
+
+
+```
+
+
+```{r}
+
+temp_carbon %>% filter(!is.na(temp_anomaly)) %>% ggplot(aes(year, carbon_emissions)) +geom_line()
+
+
+```
+
+```{r}
+
+historic_co2 %>% ggplot(aes(year, co2, color = source)) +geom_line() + scale_x_continuous(limits = c(-800000, -775000))
+
+
+```
+
+```{r}
+
+historic_co2 %>% ggplot(aes(year, co2, color = source)) +geom_line() + scale_x_continuous(limits = c(-375000, -330000))
+
+
+```
+
+```{r}
+
+historic_co2 %>% ggplot(aes(year, co2, color = source)) +geom_line() + scale_x_continuous(limits = c(-140000, -120000))
+
+
+```
+
+```{r}
+
+historic_co2 %>% ggplot(aes(year, co2, color = source)) +geom_line() + scale_x_continuous(limits = c(-3000, 2018 ))
+
+```
+
+

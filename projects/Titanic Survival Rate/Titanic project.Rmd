@@ -1,0 +1,103 @@
+---
+
+title: "Data Analytics in R - Assignment 9"
+author: "Don Smith"
+output: github_document
+
+---
+## Question 1: Read in Titanic data.
+
+```{r}
+
+library(dplyr)
+library(ggplot2)
+library(dslabs)
+library(tidyverse)
+
+#Read in data
+#Note: For the purposes of this assignment, data has been truncated
+titanic_train <- read.csv("C:\\Users\\Owner\\Documents\\GitHub\\r\\class assignments\\Data Analytics in R\\Assignment 9\\data\\titanic_data.csv")
+head(titanic_train)
+
+```
+
+## Question 2: Filter data set to isolate columns c(Survived, Pclass, Sex, Age, SibSp, Parch, Fare).
+
+```{r}
+#Isolated requisite columns, and converted Survived, Pclass and Sex to factors for future use
+titanic <- titanic_train %>%
+  select(Survived, Pclass, Sex, Age, SibSp, Parch, Fare) %>%
+  mutate(Survived = factor(Survived),
+         Pclass = factor(Pclass),
+         Sex = factor(Sex))
+
+head(titanic)
+
+```
+## Question 3: Determine the number of survivers vs non-survivers aggregated by class.
+
+```{r}
+
+#Counting number of survived/died by class
+survived1 <- count(titanic %>% filter(Pclass == 1, Survived == 1))
+died1 <- count(titanic %>% filter(Pclass == 1,Survived == 0))
+
+survived2 <- count(titanic %>% filter(Pclass == 2, Survived == 1))
+died2 <- count(titanic %>% filter(Pclass == 2,Survived == 0))
+
+survived3 <- count(titanic %>% filter(Pclass == 3, Survived == 1))
+died3 <- count(titanic %>% filter(Pclass == 3,Survived == 0))
+
+
+# Loading data into data.frame for easier viewing
+table_data <- data.frame(
+  Row_names = character(),
+  FirstClass = integer(),
+  SecondClass= integer(),
+  Thirdclass= integer())
+
+table_data[1,] <- c('Survived', as.integer(survived1), as.integer(survived2), as.integer(survived3))
+table_data[2,] <- c('Died', as.integer(died1), as.integer(died2), as.integer(died3))
+
+table_data
+
+
+```
+
+
+## Question 4: Create a density plot showing survivers vs non-survivers.
+
+```{r}
+
+titanic %>%  ggplot(aes(Age, fill = Survived)) +
+  geom_density(aes(y = ..count..), alpha = 0.2, bw = 0.5, position = "stack")
+
+```
+
+
+## Question 5: Create a density plot showing survivers vs non-survivers, aggregated by class, gender and age.
+
+```{r}
+
+titanic %>%  ggplot(aes(Age, fill = Survived)) +
+  geom_density(aes(y = ..count..), alpha = 0.2, bw = 0.5, position = "stack") + facet_grid(Sex~Pclass)
+
+```
+
+## Question 6: Create a bar graph showing the number of survivers vs non-survivers, aggregated by class.
+
+```{r}
+
+titanic %>% ggplot(aes(Pclass, fill = Survived)) + geom_bar()
+
+```
+
+## Question 7: Create a box plot of survivers vs non-survivers, aggregated by fare price.
+
+```{r}
+
+titanic %>% filter(Fare >0) %>% 
+  ggplot(aes(Survived, Fare, fill = Survived)) + scale_y_continuous(trans = "log2") + geom_boxplot() + geom_jitter(width = 0.1, alpha = 0.2) 
+
+```
+

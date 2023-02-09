@@ -7,7 +7,7 @@ output: github_document
 
 # Part 1: Load and summarize
 
-## Initial loading of data, packages, and functions
+## 1a. Initial loading of data, packages, and functions
 
 ``` r
 # Run this reusable confusion matrix function (https://en.wikipedia.org/wiki/Confusion_matrix)
@@ -36,7 +36,7 @@ my_confusion_matrix <- function(cf_table) {
 }
 ```
 
-## Install and load packages (don’t install twice)
+## 1b. Install and load packages (don’t install twice)
 
 ``` r
 # install.packages('tidyverse')
@@ -103,7 +103,7 @@ summary(df)
 
 # Part 2: Run the Logistic Algorithm
 
-## Prepare the data
+## 2a. Prepare the data
 
 ``` r
 # Not for the model (for use later)
@@ -127,7 +127,7 @@ contrasts(factor(logit2$high_med_gp))
     ## 0 0
     ## 1 1
 
-## Partition the data into testing and training datasets
+## 2b. Partition the data into testing and training datasets
 
 ``` r
 # install.packages('caret') (don't install twice)
@@ -150,7 +150,7 @@ data_train <- logit2[partition, ]
 data_test <- logit2[-partition, ]
 ```
 
-## Train the multivariate model - these are the instructions part of machine learning
+## 2c. Train the multivariate model - these are the instructions part of machine learning
 
 ``` r
 model_train <- glm(high_med_gp ~ ., family=binomial, data=data_train)
@@ -200,13 +200,13 @@ summary(model_train)
 
 2)  What does the p-value mean?
 
-## Predict the response variable (Use the instructions to predict the likelihood of high gross profit)
+## 2d. Predict the response variable (Use the instructions to predict the likelihood of high gross profit)
 
 ``` r
 predict_test <- predict(model_train, newdata=data_test, type='response')
 ```
 
-## Form table to look at the accuracy of the model
+## 2e. Form table to look at the accuracy of the model
 
 ``` r
 table2 <- table(predict_test>.5, data_test$high_med_gp) #prediction on left and truth on top
@@ -256,7 +256,7 @@ my_confusion_matrix(table2)
 
 # Part 3: Use the predictions above to help the business
 
-## Put the data back together for future use
+## 3a. Put the data back together for future use
 
 ``` r
 # Put the prediction back into the test data

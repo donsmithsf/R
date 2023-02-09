@@ -1,0 +1,123 @@
+---
+
+title: "Data Analytics in R - Assignment 16"
+author: "Don Smith"
+output: github_document
+
+---
+
+### Question 1. Import the `store_3HE.csv` as dataframe df. Learn about the data from the data description file. 
+
+```{r}
+
+df <- read.csv("C:\\Users\\Owner\\Documents\\GitHub\\r\\class assignments\\Data Analytics in R\\Assignment 16\\data\\store_3HE.csv")
+
+```
+
+
+### Question 2. Analyze the dataset using the `str()`, `summary()`, `head()`, `tail()`, `slice_sample()`, `unique()`, and `n_distinct()` functions.
+
+```{r}
+
+library(dplyr)
+
+str(df)
+summary(df)
+head(df)
+
+```
+
+```{r}
+
+tail(df)
+slice_sample(df)
+unique(df)
+n_distinct(df)
+
+```
+
+
+### Question 3. Convert the values in the `revenue` column to a numeric data type.
+### Question 4. Delete rows that contain missing values in any of the columns.
+
+```{r}
+
+df <- df %>% transform(revenue = as.numeric(revenue)) %>% na.omit(df)
+head(df)
+
+```
+
+
+### Question 5. We are interested in understanding what factors influence the revenue for an individual store. From dataframe df, create two dataframes df_low and df_high such that df_low contains data on all the stores with revenue less than the average revenue for the complete data and df_high contains data on all the stores with revenue equal or greater than the average revenue for the complete data. Calculate the average size of the stores in the two dataframes (df_lows and df_highs) and comment on the relationship between revenue and size of the stores by discussing the two means (just one or two sentences).
+
+```{r}
+
+average_rev <- mean(df$revenue)
+
+df_low <- df %>% filter(df$revenue < average_rev)
+head(df_low)
+df_high <- df %>% filter(df$revenue >= average_rev)
+head(df_high)
+
+df_lows <- mean(df_low$size)
+head(df_lows)
+df_highs <- mean(df_high$size)
+head(df_highs)
+
+```
+
+##### Reviewing the two means above, the stores with average and above average revenue are larger than the stores with below average revenue (882.3274 and 680.1287 respectively).
+
+### Question 6. Report and comment on the correlation between revenue and size. First, calculate the correlation between revenue and size in the main dataframe. Next, using the `ggplot()` function, plot the relationship between the revenue and size using an appropriate chart. Finally, discuss in one or two sentences.
+
+```{r}
+
+library(ggplot2)
+cor(df$revenue, df$size)
+ggplot(df, aes(revenue, size)) + geom_point() 
+
+```
+
+##### As the above scatterplot shows, higher revenue is correlated with larger store size, with the points distributed parabolically in the positive direction.
+
+### Question 7. Create boxplots of revenue for each region and comment on the distribution of revenue within each region (in one or two sentences). 
+
+```{r}
+
+ggplot(df, aes(revenue, size, group = region, color = region)) + 
+  geom_boxplot()
+
+```
+
+##### The mean store size for all four boxplots are between 750 and 875. However, Atlantic has the greater distribution of revenue relative to the others, as well as the stores with the largest size.
+
+### Question 8. Calculate the correlation between the revenue and promo_units and comment on whether the value aligns with your expectation. Based on this value of correlation, can you conclude that selling units on promotion helps in increasing revenue? Please explain your reason for the conclusion in a few sentences.
+
+```{r}
+
+cor(df$revenue, df$promo_units)
+
+```
+#### From the correlation calculated, we can see that the .97 is close to 1--therefore, selling units on promotion has a positive effect on revenue, and they should continue to do this. If the correlation were smaller, lets say 0.05, then we could conclude that both columns are not related at all. But given the correlation is so high, we must conclude positive effect.
+
+### Question 9. Create a bar chart that shows total gross_profit for each province. Comment on a few findings from the chart in one or two sentences.
+
+```{r}
+
+library(tidyverse)
+options(scipen=999)
+df %>% ggplot(aes(province, gross_profit)) + geom_bar(stat="identity", color='black') 
+
+```
+
+##### Ontario generates the highest gross profit, followed by Alberta and Quebec. Prince Edward and New Brunswick and the lowest and second lowest in terms of revenue.
+
+### Question 10. Create a correlation matrix for showing correlations among the average store sales for all product categories. Which two product categories sell together the least and which sell together the most?
+
+```{r}
+
+df %>% select(energy_units, regularBars_units, gum_units, bagpegCandy_units, isotonics_units, singleServePotato_units, takeHomePotato_units, kingBars_units, flatWater_units, psd591Ml_units) %>% cor()
+
+```
+
+##### takeHomePotato_units and bagpegCandy_units sell together the most, while psd591Ml_units and gum_units are sold together the least.          

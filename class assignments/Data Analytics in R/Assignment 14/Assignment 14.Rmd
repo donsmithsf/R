@@ -1,0 +1,58 @@
+---
+
+title: "Data Analytics in R - Assignment 14"
+author: "Don Smith"
+output: github_document
+
+---
+
+### Question 1: Create three graphs using the EPS dataset which show:
+##### 1.EPS dilution aggregated by quarter for all years
+##### 2.EPS dilution aggregated by quarter for 1998
+##### 3.EPS dilution aggregated by quarter for 2019
+
+```{r}
+
+library(tidyverse)
+library(ggplot2)
+
+df <- read_rds('C:\\Users\\Owner\\Documents\\GitHub\\r\\class assignments\\Data Analytics in R\\Assignment 14\\data\\EPS rounding_after class.rds')
+head(df)
+
+```
+
+```{r}
+
+#By quarter
+fe2 <- df %>% group_by(fqtr, digit_diluted) %>% summarize(count_filings = n())
+fe2 %>% ggplot(aes(x=digit_diluted, y=count_filings))+ geom_col(aes(fill=digit_diluted)) + facet_wrap(vars(as_factor(fqtr))) + theme_bw()
+
+```
+
+```{r}
+
+#EPS Digit Frequency Bar Chart by Quarter of the Year for 1998
+fe3 <- df  %>% filter(fyearq == 1998) %>% group_by(fqtr, digit_diluted, fyearq) %>% summarize(count_filings = n())
+fe3 %>% ggplot(aes(x=digit_diluted, y=count_filings))+ geom_col(aes(fill=digit_diluted)) + facet_wrap(vars(as_factor(fqtr))) + theme_bw()
+
+```
+
+```{r}
+
+#EPS Digit Frequency Bar Chart by Quarter of the Year for 2019
+fe4 <- df  %>% filter(fyearq == 2019) %>% group_by(fqtr, digit_diluted, fyearq) %>% summarize(count_filings = n())
+fe4 %>% ggplot(aes(x=digit_diluted, y=count_filings))+ geom_col(aes(fill=digit_diluted)) + facet_wrap(vars(as_factor(fqtr))) + theme_bw()
+
+```
+
+
+### Question 2: Filter the 10 companies that are the worst offenders (i.e., overuse EPS dilution).
+
+```{r}
+
+# 3a. 10 Worst Offenders
+de <- df %>% mutate(is_4 = if_else(digit_diluted == 4, 1, 0), is_5 = if_else(digit_diluted == 5, 1, 0))  %>% group_by(tic, conm) %>% summarize( count_4s = sum(is_4), count_5s = sum(is_5), percent_4s = count_4s/length(is_4), percent_5s = count_5s/length(is_5), count_filings =n()) %>% filter(count_filings > 56, percent_4s < 0.0118, percent_5s > .11)
+de
+
+```
+

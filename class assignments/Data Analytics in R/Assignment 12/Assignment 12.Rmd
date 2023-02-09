@@ -1,0 +1,103 @@
+---
+
+title: "Data Analytics in R - Assignment 12"
+author: "Don Smith"
+output: github_document
+
+---
+
+### Question 1: Read in the ities.csv datafile as a dataframe object, df. 
+
+```{r}
+# Reading in the ities.csv data file
+
+df <- read.csv("C:\\Users\\Owner\\Documents\\GitHub\\r\\class assignments\\Data Analytics in R\\Assignment 12\\data\\ities.csv")
+
+```
+
+
+### Question 2: Display the number of rows and columns in the dataset using an appropriate R function. Below the output, identify which numbers from the output correspond to the number of rows and columns. 
+
+```{r}
+
+head(df) # Prints the the first 6 rows of all columns in the dataset   
+
+# Prints out the number of rows (observations) and columns (variables)
+paste0('The number of rows in this data set is ', nrow(df))
+paste0('The number of columns in this data set is ', ncol(df))
+
+```
+
+
+### Question 3: Display the structure of the dataframe, df. Below the output, briefly summarize one or two main points about the dataframe structure.
+
+```{r}
+
+str(df)     # Prints structure of dataset
+
+```
+
+##### The majority of columns are chars, with only 3 columns being either numerics (2) or integers (1). The date column interestingly consists of chars and not a date/time data type. It makes sense most of the columns are chars as many consist of either names of people or items, or various tracking numbers consisting of numbers and letters--entries which have a mix of chars and numerics logically must default to chars, whether this mix is located in separate entries in a data frame/vector/list or in a single entry.
+
+### Question 4: Display a summary of the columns in df. Below the output, comment on columns for which the data type does not seem correct, the format to which they should be changed, and why that change would be helpful.
+
+```{r}
+
+summary(df)     # Prints a summary of all columns in the dataset
+
+```
+
+##### The Date column could be a date data type like POSIXlt instead of a char. RegisterName, StoreNumber, TransactionNumber and CustomerCode could be converted to factors instead of chars so that we can run calcualtions on and graph/aggregate the entires.
+
+### Question 5: Convert the values in Department and LineItem columns to lower cases and save them as Department_lower and LineItem_lower. 
+
+```{r}
+
+# Installed stringr package to convert necessary columns into all lowercase letters.
+library(stringr)
+
+df$Department_lower <- str_to_lower(df$Department)
+df$LineItem_lower <- str_to_lower(df$LineItem)
+
+head(df) # To confirm new columns have been added to data set
+
+```
+
+
+### Question 6: Use the plot function on Department_lower. You will get an error. Below the output, describe the reason for the error. After running the code chunk to see the error, comment out the code chunk so that you can knit the document to a .html file.
+
+
+```{r}
+
+# Plotted the Department_lower column. It throws an error because the observations in the data set are chars and not factors. 
+
+# plot(df$Department)
+
+```
+##### R cannot plot strings (chars) as they do not have a numerical quality that would allow the computer to process, organize and plot them on a graph. The strings would first have to be converted to factors, a process whereby the string is assigned a numerical value "under the hood", where the original string value is still visible for human consumption. A good example of this would be the categorical data, e.g. male and female. If these two values were to be converted to factors, more than likely one would be assigned a value of 1, and the other 2, which would allow us to run caluclations, aggregate data, run summary statistics, etc.
+
+### Question 7: Convert the datatype of Department_lower to a factor type (do not create new column, just convert it in place). 
+
+```{r}
+# Converted this column to a factor
+
+df$Department_lower <- as.factor(df$Department_lower)
+
+str(df$Department_lower) # To confirm all rows in column have been converted to factor data type
+
+```
+
+
+### Question 8: Use the plot function on the Department_lower column to display a plot of that column from most frequent on the left to least frequent on the right. Below the output, comment on the department that occurs most frequently, as well as the one that occurs least frequently.
+
+```{r}
+# Installed forcats package to order data by frequency before plotting.
+
+library(forcats)
+ss <- forcats::fct_infreq(df$Department_lower)
+plot(ss)
+
+```
+
+
+##### From the graph, we can see that entrees show up the most while swag shows up the least.
