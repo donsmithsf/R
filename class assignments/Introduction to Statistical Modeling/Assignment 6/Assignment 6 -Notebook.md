@@ -11,7 +11,7 @@ title: “Introduction to Statistical Modeling - Assignment 6” author:
 
 ##### **Use the Arena software (PC users) or Python with SimPy (PC or Mac users) to build a simulation of the system, and then vary the number of ID/boarding-pass checkers and personal-check queues to determine how many are needed to keep average wait times below 15 minutes. \[If you’re using SimPy, or if you have access to a non-student version of Arena, you can use λ1 = 50 to simulate a busier airport.\]**
 
-> ##### I used SimPy to generate my simulation. See separate file entitled [Assignment 6 - Question 13.2](https://link-url-here.org).
+> ##### I used SimPy to generate my simulation. See separate file entitled [Assignment 6 - Question 13.2](https://github.com/donsmithsf/python/tree/main/class%20assignments/Introduction%20to%20Statistical%20Modeling/Assignment%206).
 
 ## Question 14.1
 
