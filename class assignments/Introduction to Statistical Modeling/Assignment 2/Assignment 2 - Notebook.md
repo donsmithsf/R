@@ -651,7 +651,7 @@ head(data_temp_scaled)
     ## 5 -0.1100465  0.1059236 0.4756321 1.6589910  0.17256533 0.312056147  0.08028078
     ## 6  0.6665929  0.2402391 0.4756321 1.4428301  0.17256533 0.463767239  0.08028078
 
-> ##### **Link to online spreadsheet containing my analysis: <https://docs.google.com/spreadsheets/d/1YXcTX0ydm9L299bdZuJiRiHdNrLxyUtJ/edit?usp=sharing&ouid=112237753660920597081&rtpof=true&sd=true>**
+> ##### **–\> Link to online spreadsheet containing my analysis: [Assignment 2 - Question 6.1 and 6.2 CUMSUM](https://docs.google.com/spreadsheets/d/1YXcTX0ydm9L299bdZuJiRiHdNrLxyUtJ/edit?usp=sharing&ouid=112237753660920597081&rtpof=true&sd=true)**
 
 > ##### To determine the threshold, μ and C for each year, I took the standard deviation (SD) of the first 45 observations, and set the threshold as 3 SD and my C as 1 SD. As for μ, I set it as the mean of the first 45 observations.
 
